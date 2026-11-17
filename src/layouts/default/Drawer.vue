@@ -38,6 +38,8 @@ const groups = [
     { title: 'pages.config', icon: 'mdi-routes', path: '/config' },
   ]},
   { title: 'navigation.operations', items: [
+    { title: 'pages.nodes', icon: 'mdi-lan', path: '/nodes' },
+    { title: 'pages.domains', icon: 'mdi-shield-lock-outline', path: '/domains' },
     { title: 'pages.services', icon: 'mdi-server-network-outline', path: '/services' },
     { title: 'pages.settings', icon: 'mdi-cog-outline', path: '/settings' },
     { title: 'pages.admins', icon: 'mdi-account-key-outline', path: '/admins' },
