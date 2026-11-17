@@ -8,22 +8,24 @@ import ru from './ru'
 import ja from './ja'
 import fr from './fr'
 import la from './la'
+import { withNexus } from './nexus'
 
 export const i18n = createI18n({
   legacy: false,
   locale: localStorage.getItem("locale") ?? 'en',
   fallbackLocale: 'en',
   messages: {
-    en: en,
-    fa: fa,
-    vi: vi,
-    zhHans: zhcn,
-    zhHant: zhtw,
-    ru: ru,
-    ja: ja,
-    fr: fr,
-    la: la,
+    en: withNexus('en', en),
+    fa: withNexus('fa', fa),
+    vi: withNexus('vi', vi),
+    zhHans: withNexus('zhHans', zhcn),
+    zhHant: withNexus('zhHant', zhtw),
+    ru: withNexus('ru', ru),
+    ja: withNexus('ja', ja),
+    fr: withNexus('fr', fr),
+    la: withNexus('la', la),
   },
+
 })
 
 export const locale = (() => {
