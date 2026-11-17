@@ -50,6 +50,12 @@
             <v-text-field v-model="settings.webURI" :label="$t('setting.webUri')" hide-details></v-text-field>
           </v-col>
           <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="settings.acmeEmail" dir="ltr" :label="$t('cert.email')" placeholder="you@example.com" hide-details></v-text-field>
+          </v-col>
+          <v-col cols="12" v-if="settings.webNginx == 'true'">
+            <v-alert type="info" variant="tonal" density="compact">{{ $t('cert.settingsNginxNote', { side: $t('cert.targetWeb') }) }}</v-alert>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
             <v-text-field
               type="number"
               v-model.number="sessionMaxAge"
@@ -120,6 +126,9 @@
         <v-row>
           <v-col cols="12" sm="6" md="4">
             <v-text-field v-model="settings.subDomain" :label="$t('setting.domain')" hide-details></v-text-field>
+          </v-col>
+          <v-col cols="12" v-if="settings.subNginx == 'true'">
+            <v-alert type="info" variant="tonal" density="compact">{{ $t('cert.settingsNginxNote', { side: $t('cert.targetSub') }) }}</v-alert>
           </v-col>
           <v-col cols="12" sm="6" md="4">
             <v-text-field v-model="settings.subPath" :label="$t('setting.path')" hide-details></v-text-field>
@@ -223,6 +232,9 @@ const settings = ref({
 	subURI: "",
   subJsonExt: "",
   subClashExt: "",
+  webNginx: "false",
+  subNginx: "false",
+  acmeEmail: "",
 })
 
 onMounted(async () => {
