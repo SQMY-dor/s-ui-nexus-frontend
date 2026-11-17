@@ -74,7 +74,7 @@
             </v-row>
           </template>
           <v-row>
-            <v-col>{{ $t('pages.inbounds') }}</v-col>
+            <v-col>{{ $t('node.inbounds') }}</v-col>
             <v-col>
               <template v-if="replicaTags(item.id).length > 0">
                 <v-tooltip activator="parent" dir="ltr" location="bottom">

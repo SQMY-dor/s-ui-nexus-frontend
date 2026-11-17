@@ -58,9 +58,9 @@
         <v-card-text>
           <v-alert v-if="!acme.supported && statusLoaded" type="info" variant="tonal" density="compact" class="mb-3">{{ $t('cert.linuxOnly') }}</v-alert>
           <v-row>
-            <v-col>{{ $t('cert.acmeInstalled') }}</v-col>
+            <v-col>{{ $t('cert.status') }}</v-col>
             <v-col>
-              <v-chip size="small" variant="flat" :color="acme.installed ? 'success' : 'grey'">{{ acme.installed ? $t('yes') : $t('no') }}</v-chip>
+              <v-chip size="small" variant="flat" :color="acme.installed ? 'success' : 'grey'">{{ acme.installed ? $t('cert.installedYes') : $t('cert.installedNo') }}</v-chip>
             </v-col>
           </v-row>
           <v-row v-if="acme.version">
@@ -87,12 +87,12 @@
         <v-card-title>nginx</v-card-title>
         <v-card-text>
           <v-row>
-            <v-col>{{ $t('cert.nginxInstalled') }}</v-col>
-            <v-col><v-chip size="small" variant="flat" :color="nginx.installed ? 'success' : 'grey'">{{ nginx.installed ? $t('yes') : $t('no') }}</v-chip></v-col>
+            <v-col>{{ $t('cert.status') }}</v-col>
+            <v-col><v-chip size="small" variant="flat" :color="nginx.installed ? 'success' : 'grey'">{{ nginx.installed ? $t('cert.installedYes') : $t('cert.installedNo') }}</v-chip></v-col>
           </v-row>
           <v-row>
-            <v-col>{{ $t('cert.nginxActive') }}</v-col>
-            <v-col><v-chip size="small" variant="flat" :color="nginx.active ? 'success' : 'grey'">{{ nginx.active ? $t('yes') : $t('no') }}</v-chip></v-col>
+            <v-col>{{ $t('cert.service') }}</v-col>
+            <v-col><v-chip size="small" variant="flat" :color="nginx.active ? 'success' : 'grey'">{{ nginx.active ? $t('cert.runningYes') : $t('cert.runningNo') }}</v-chip></v-col>
           </v-row>
           <v-row>
             <v-col>{{ $t('cert.port80') }}</v-col>
