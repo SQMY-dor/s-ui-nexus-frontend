@@ -186,7 +186,7 @@
                   :label="$t('client.external') + ' ' + (index+1)"
                   append-icon="mdi-delete"
                   @click:append="extLinks.splice(index,1)"
-                  placeholder="<protocol>://<data>"
+                  :placeholder="extLinkPlaceholder"
                   v-model="lnk.uri" />
                 </v-col>
               </v-row>
@@ -202,7 +202,7 @@
                   :label="$t('client.sub') + ' ' + (index+1)"
                   append-icon="mdi-delete"
                   @click:append="subLinks.splice(index,1)"
-                  placeholder="http[s]://<domain>[:]<port>/<path>"
+                  :placeholder="subLinkPlaceholder"
                   v-model="lnk.uri" />
                 </v-col>
               </v-row>
@@ -254,6 +254,8 @@ export default {
       extLinks: <Link[]>[],
       nodeLinks: <Link[]>[],
       subLinks: <Link[]>[],
+      extLinkPlaceholder: '<protocol>://<data>',
+      subLinkPlaceholder: 'http[s]://<domain>[:]<port>/<path>',
     }
   },
   methods: {
