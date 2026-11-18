@@ -28,7 +28,7 @@
             variant="tonal"
             density="compact"
             icon="mdi-key-star"
-            @click="genECH"
+            @click="genDialog = true"
             :loading="loading">
             <v-icon />
             <v-tooltip activator="parent" location="top">
@@ -59,7 +59,10 @@
         <v-col cols="12" sm="6" v-if="oTls.ech">
           <v-text-field
             :label="$t('tls.queryServerName')"
-            hide-details
+            :disabled="queryLocked"
+            :hint="hasConfig ? $t('tls.echQueryDisabled') : ''"
+            :persistent-hint="hasConfig"
+            :hide-details="!hasConfig"
             v-model="oTls.ech.query_server_name"
             placeholder="ech.example.com">
           </v-text-field>
@@ -75,6 +78,34 @@
         </v-col>
       </v-row>
     </template>
+    <v-dialog v-model="genDialog" max-width="520">
+      <v-card :title="$t('tls.echPublicName')">
+        <v-divider />
+        <v-card-text>
+          <p class="mb-3">{{ $t('tls.echPublicNameAbout') }}</p>
+          <p class="mb-4 text-medium-emphasis">{{ $t('tls.echQueryAbout') }}</p>
+          <v-text-field
+            v-model="publicName"
+            :label="$t('tls.echPublicName')"
+            placeholder="public.example.com"
+            dir="ltr"
+            hide-details
+            autofocus
+            @keydown.enter="onPublicNameEnter"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" variant="outlined" @click="genDialog = false">{{ $t('actions.close') }}</v-btn>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            :loading="loading"
+            :disabled="publicName.trim() == ''"
+            @click="genECH">{{ $t('actions.generate') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -83,6 +114,7 @@ import { i18n } from '@/locales'
 import HttpUtils from '@/plugins/httputil'
 import { ech } from '@/types/tls'
 import { push } from 'notivue'
+import { asLines, echHasConfig, echQueryLocked, splitEchPems } from '@/plugins/ech'
 
 export default {
   props: ['iTls','oTls'],
@@ -90,49 +122,39 @@ export default {
     return {
       useEchPath: this.$props.iTls?.ech?.key? 1:0,
       loading: false,
+      // The public name is the cleartext outer SNI baked into the generated
+      // config: asked for on generate (it used to be the inbound's own
+      // server_name, which put the name ECH hides in the clear). sing-box keeps
+      // no field for it. Upstream s-ui-frontend 3235da1 via shenaba/2s-ui.
+      genDialog: false,
+      publicName: '',
     }
   },
   methods: {
+    onPublicNameEnter(e: KeyboardEvent) {
+      // Enter that confirms an IME composition is not a request to generate.
+      if (e.isComposing || e.keyCode === 229) return
+      this.genECH()
+    },
     async genECH(){
+      const name = this.publicName.trim()
+      if (name == '') return
       this.loading = true
       const msg = await HttpUtils.get('api/keypairs', {
         k: "ech",
-        o: this.iTls.server_name?? "''"
+        o: name
       })
       this.loading = false
       if (msg.success && this.iTls.ech && this.oTls.ech) {
+        this.genDialog = false
         this.iTls.ech.key_path=undefined
         this.useEchPath = 1
         if (msg.obj.length>0){
-          const config = <string[]>[]
-          const key = <string[]>[]
-          let isConfig = false
-          let isKey = false
-
-          msg.obj.forEach((line:string) => {
-            if (line === "-----BEGIN ECH CONFIGS-----") {
-              isConfig = true
-              isKey = false
-              config.push(line)
-            } else if (line === "-----END ECH CONFIGS-----") {
-              isConfig = false
-              config.push(line)
-            } else if (line === "-----BEGIN ECH KEYS-----") {
-              isKey = true
-              isConfig = false
-              key.push(line)
-            } else if (line === "-----END ECH KEYS-----") {
-              isKey = false
-              key.push(line)
-            } else if (isConfig) {
-              config.push(line)
-            } else if (isKey) {
-              key.push(line)
-            }
-          })
-          this.iTls.ech.key = key?? undefined
-          this.oTls.ech.config = config?? undefined
-
+          const { config, key } = splitEchPems(<string[]>msg.obj)
+          this.iTls.ech.key = key.length > 0 ? key : undefined
+          this.oTls.ech.config = config.length > 0 ? config : undefined
+          // Has no effect next to the config just written
+          delete this.oTls.ech.query_server_name
         } else {
           push.error({
             message: i18n.global.t('error') + ": " + msg.obj
@@ -152,14 +174,22 @@ export default {
         this.$props.oTls.ech = v ? {} : undefined
       }
     },
+    // A key or config stored as one string (sing-box Listable) is read as
+    // lines instead of breaking the drawer.
     echKeyText: {
-      get(): string { return this.ech?.key ? this.ech.key.join('\n') : '' },
+      get(): string { return asLines(this.ech?.key).join('\n') },
       set(newValue:string) { this.ech.key = newValue.split('\n') }
     },
     echConfigText: {
-      get(): string { return this.oTls.ech?.config ? this.oTls.ech.config.join('\n') : '' },
+      get(): string { return asLines(this.oTls.ech?.config).join('\n') },
       set(newValue:string) { this.oTls.ech.config = newValue.split('\n') }
     },
+    // A client with a config uses it and never looks one up, so the query
+    // name only matters while the config is empty.
+    hasConfig(): boolean { return echHasConfig(this.oTls.ech?.config) },
+    // Locked only while it is empty next to a config: one already set stays
+    // editable so it can be cleared.
+    queryLocked(): boolean { return echQueryLocked(this.oTls.ech) },
   }
 }
 </script>

@@ -8,6 +8,24 @@
 // vue-i18n message syntax: do not use a bare @ { } or | in these strings.
 
 const en = {
+  inbound: {
+    off: "Off",
+    switchOn: "Switch on",
+    switchOff: "Switch off: keeps the inbound and its clients, but nothing listens and its links leave the subscriptions",
+    depleted: "Out of traffic",
+    traffic: "Traffic",
+    limit: "Data limit",
+    limitHint: "Switched off automatically once up + down exceed it; 0 = unlimited",
+    used: "Used",
+    resetTraffic: "Reset traffic",
+    offMark: "off",
+  },
+  tls: {
+    echPublicName: "ECH Public Name",
+    echPublicNameAbout: "The public name is the decoy SNI that clients send in the clear, while the real server name travels encrypted inside ECH. Use a name that blends in, not your own domain, or ECH hides nothing. The key itself is always random; this name is embedded in the generated config.",
+    echQueryAbout: "ECH Query Server Name applies only when the config is empty: the client then looks the config up in that domain's DNS (HTTPS record). A key generated here fills the config in, so the query name then has no effect.",
+    echQueryDisabled: "Not used while a config is set below. Clear the config to look it up in DNS instead.",
+  },
   pages: {
     nodes: "Nodes",
     domains: "Domains & Certificates",
@@ -17,6 +35,7 @@ const en = {
   },
   actions: {
     adoptInbounds: "Adopt inbounds",
+    resetTraffic: "Reset traffic of",
     reconcileNode: "Sync node",
   },
   node: {
@@ -66,6 +85,8 @@ const en = {
     inboundsTitle: "Inbounds on {name}",
     adoptHint: "Adopted inbounds become read-only replicas here. Clients you attach to them are pushed to the node automatically.",
     noRemoteInbounds: "This node has no inbounds",
+    noUsers: "takes no users",
+    pickClients: "Tick at least one group or client, or choose none to import only",
     adopted: "Adopted",
     tagConflict: "Tag exists locally",
     adopt: "Adopt",
@@ -182,6 +203,24 @@ const en = {
 type Messages = typeof en
 
 const zhcn: Messages = {
+  inbound: {
+    off: "已关闭",
+    switchOn: "开启",
+    switchOff: "关闭：保留入站及其用户，但不再监听，其链接也会从订阅中移除",
+    depleted: "流量已用完",
+    traffic: "流量",
+    limit: "流量上限",
+    limitHint: "上行 + 下行超过上限后自动关闭；0 = 不限",
+    used: "已用",
+    resetTraffic: "重置流量",
+    offMark: "已关闭",
+  },
+  tls: {
+    echPublicName: "ECH 公开名称",
+    echPublicNameAbout: "公开名称是客户端以明文发送的伪装 SNI，真实的服务器名称则在 ECH 内加密传输。请使用不显眼的名称，而不是你自己的域名，否则 ECH 起不到隐藏作用。密钥本身总是随机生成的；该名称会写入生成的配置中。",
+    echQueryAbout: "“ECH 查询服务器名称”仅在配置为空时生效：此时客户端会从该域名的 DNS（HTTPS 记录）获取配置。在此处生成密钥会填入配置，查询名称随之不再起作用。",
+    echQueryDisabled: "下方已设置配置时不使用此项。清空配置即可改为从 DNS 获取。",
+  },
   pages: {
     nodes: "节点",
     domains: "域名与证书",
@@ -191,6 +230,7 @@ const zhcn: Messages = {
   },
   actions: {
     adoptInbounds: "采纳入站",
+    resetTraffic: "重置流量：",
     reconcileNode: "同步节点",
   },
   node: {
@@ -240,6 +280,8 @@ const zhcn: Messages = {
     inboundsTitle: "{name} 上的入站",
     adoptHint: "采纳后的入站在本面板为只读副本；把用户挂到副本上，用户会自动下发到该节点。",
     noRemoteInbounds: "该节点没有入站",
+    noUsers: "不承载用户",
+    pickClients: "请至少勾选一个分组或用户，或选择“无”仅导入",
     adopted: "已采纳",
     tagConflict: "本机已有同名标签",
     adopt: "采纳",
@@ -354,6 +396,24 @@ const zhcn: Messages = {
 }
 
 const zhtw: Messages = {
+  inbound: {
+    off: "已關閉",
+    switchOn: "開啟",
+    switchOff: "關閉：保留入站及其使用者，但不再監聽，其連結也會從訂閱中移除",
+    depleted: "流量已用完",
+    traffic: "流量",
+    limit: "流量上限",
+    limitHint: "上行 + 下行超過上限後自動關閉；0 = 不限",
+    used: "已用",
+    resetTraffic: "重設流量",
+    offMark: "已關閉",
+  },
+  tls: {
+    echPublicName: "ECH 公開名稱",
+    echPublicNameAbout: "公開名稱是用戶端以明文傳送的偽裝 SNI，真實的伺服器名稱則在 ECH 內加密傳輸。請使用不顯眼的名稱，而不是你自己的網域，否則 ECH 起不到隱藏作用。金鑰本身總是隨機產生的；此名稱會寫入產生的設定中。",
+    echQueryAbout: "「ECH 查詢伺服器名稱」僅在設定為空時生效：此時用戶端會從該網域的 DNS（HTTPS 記錄）取得設定。在此產生金鑰會填入設定，查詢名稱隨之不再起作用。",
+    echQueryDisabled: "下方已填入設定時不使用此項。清空設定即可改為從 DNS 取得。",
+  },
   pages: {
     nodes: "節點",
     domains: "網域與憑證",
@@ -363,6 +423,7 @@ const zhtw: Messages = {
   },
   actions: {
     adoptInbounds: "採納入站",
+    resetTraffic: "重設流量：",
     reconcileNode: "同步節點",
   },
   node: {
@@ -412,6 +473,8 @@ const zhtw: Messages = {
     inboundsTitle: "{name} 上的入站",
     adoptHint: "採納後的入站在本面板為唯讀副本；將使用者掛到副本上，使用者會自動下發到該節點。",
     noRemoteInbounds: "該節點沒有入站",
+    noUsers: "不承載使用者",
+    pickClients: "請至少勾選一個群組或使用者，或選擇「無」僅匯入",
     adopted: "已採納",
     tagConflict: "本機已有同名標籤",
     adopt: "採納",

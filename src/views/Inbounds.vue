@@ -21,11 +21,29 @@
   </v-row>
   <v-row>
     <v-col cols="12" sm="4" md="3" lg="2" v-for="(item, index) in <any[]>inbounds" :key="item.tag">
-      <v-card rounded="xl" elevation="5" min-width="200" :title="item.tag">
+      <v-card rounded="xl" elevation="5" min-width="200" :title="item.tag" :class="{ 'inbound-off': !inboundEnabled(item) }">
+        <template v-slot:append v-if="!item.node_id">
+          <v-switch
+            color="primary"
+            density="compact"
+            hide-details
+            :model-value="inboundEnabled(item)"
+            :loading="switching[item.id]"
+            :disabled="switching[item.id]"
+            @update:model-value="(v: any) => setEnable(item, !!v)">
+            <v-tooltip activator="parent" location="top" :text="inboundEnabled(item) ? $t('inbound.switchOff') : $t('inbound.switchOn')"></v-tooltip>
+          </v-switch>
+        </template>
         <v-card-subtitle style="margin-top: -15px;">
           <v-row>
             <v-col>
               {{ item.type }}
+              <v-chip v-if="!inboundEnabled(item) && inboundDepleted(item)" density="compact" size="small" color="error" variant="tonal" class="ms-1">
+                {{ $t('inbound.depleted') }}
+              </v-chip>
+              <v-chip v-else-if="!inboundEnabled(item)" density="compact" size="small" color="grey" variant="tonal" class="ms-1">
+                {{ $t('inbound.off') }}
+              </v-chip>
               <v-chip v-if="item.node_id" density="compact" size="small" color="info" variant="tonal" prepend-icon="mdi-server-network" class="ms-1">
                 {{ nodeName(item) }}
                 <v-tooltip activator="parent" location="top" :text="$t('node.replicaHint')"></v-tooltip>
@@ -62,6 +80,13 @@
                 {{ item.users.length }}
               </template>
               <template v-else>-</template>
+            </v-col>
+          </v-row>
+          <v-row v-if="!item.node_id && (item.volume ?? 0) > 0">
+            <v-col>{{ $t('inbound.traffic') }}</v-col>
+            <v-col>
+              <div dir="ltr" style="font-size: 0.8rem;">{{ HumanReadable.sizeFormat((item.up ?? 0) + (item.down ?? 0)) }} / {{ HumanReadable.sizeFormat(item.volume ?? 0) }}</div>
+              <v-progress-linear :model-value="inboundUsagePercent(item)" :color="inboundDepleted(item) ? 'error' : 'primary'" rounded height="4"></v-progress-linear>
             </v-col>
           </v-row>
           <v-row>
@@ -126,6 +151,8 @@ import { computed, ref } from 'vue'
 import { createInbound, Inbound } from '@/types/inbounds'
 import RandomUtil from '@/plugins/randomUtil'
 import { replicaNodeName } from '@/plugins/cluster'
+import { inboundEnabled, inboundDepleted, inboundUsagePercent } from '@/plugins/inbounds'
+import { HumanReadable } from '@/plugins/utils'
 
 const nodeName = (inbound: any): string => replicaNodeName(inbound, Data().nodes ?? [])
 
@@ -171,6 +198,23 @@ const delInbound = async (id: number) => {
   if (success) delOverlay.value[index] = false
 }
 
+// The enable switch on a local card: an edit of the full inbound with enable
+// flipped, so the backend applies it like any other save (out of the core and
+// its links out of the subscriptions when off).
+const switching = ref(<Record<number, boolean>>{})
+const setEnable = async (item: any, enable: boolean) => {
+  if (item.node_id || switching.value[item.id]) return
+  switching.value[item.id] = true
+  try {
+    const inboundArray = await Data().loadInbounds([item.id])
+    const inbound = inboundArray?.[0]
+    if (!inbound) return
+    await Data().save("inbounds", "edit", { ...inbound, enable })
+  } finally {
+    switching.value[item.id] = false
+  }
+}
+
 const cloneLoading = ref(false)
 
 const clone = async (id: number) => {
@@ -178,8 +222,12 @@ const clone = async (id: number) => {
   const inboundArray = await Data().loadInbounds([id])
   const inbound = inboundArray[0]
   const newTag = inbound.type + "-" + RandomUtil.randomSeq(3)
+  // A clone starts enabled and with its own (zero) traffic counters.
   const newInbound = createInbound(inbound.type, { ...inbound,
     id: 0,
+    enable: true,
+    up: 0,
+    down: 0,
     tag: newTag,
     listen_port: RandomUtil.randomIntRange(10000, 60000),
   })
@@ -201,3 +249,9 @@ const closeStats = () => {
   stats.value.visible = false
 }
 </script>
+
+<style scoped>
+.inbound-off {
+  opacity: 0.6;
+}
+</style>

@@ -240,6 +240,7 @@
 </style>
 <script lang="ts" setup>
 import { replicaNodeName } from '@/plugins/cluster'
+import { inboundPickerTitle } from '@/plugins/inbounds'
 import Data from '@/store/modules/data'
 import ClientModal from '@/layouts/modals/Client.vue'
 import ClientAddBulk from '@/layouts/modals/ClientAddBulk.vue'
@@ -270,9 +271,12 @@ const inboundTags = computed((): any[] => {
   if (!inbounds.value) return []
   // Cluster replicas (node_id set) are labelled with their node so the same
   // protocol on several machines stays distinguishable.
+  // A switched-off inbound is marked: binding to it is allowed, but its links
+  // are not served until it is switched back on.
+  const offMark = i18n.global.t('inbound.offMark')
   return inbounds.value?.filter(i => i.tag != "" && i.users).map(i => {
     const node = replicaNodeName(i, Data().nodes ?? [])
-    return { title: node ? `[${node}] ${i.tag}` : i.tag, value: i.id }
+    return { title: inboundPickerTitle(<any>i, node, offMark), value: i.id }
   })
 })
 

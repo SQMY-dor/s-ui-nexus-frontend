@@ -27,6 +27,27 @@
             <v-col cols="12" sm="6" md="4">
               <v-text-field v-model="inbound.tag" :label="$t('objects.tag')" hide-details></v-text-field>
             </v-col>
+            <v-col cols="12" sm="6" md="4">
+              <v-switch color="primary" v-model="enable" :label="$t('enable')" hide-details></v-switch>
+            </v-col>
+          </v-row>
+          <v-row v-if="inbound.type != inTypes.Tun && inbound.type != inTypes.Redirect && inbound.type != inTypes.TProxy">
+            <v-col cols="12" sm="6" md="4">
+              <v-text-field
+                v-model.number="volumeGb"
+                type="number"
+                min="0"
+                step="0.1"
+                suffix="GiB"
+                :label="$t('inbound.limit')"
+                :hint="$t('inbound.limitHint')"
+                persistent-hint>
+              </v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6" md="8" v-if="$props.id > 0" class="d-flex align-center">
+              <span dir="ltr" class="me-2">{{ $t('inbound.used') }}: {{ HumanReadable.sizeFormat(usedBytes) }}<template v-if="(inbound.volume ?? 0) > 0"> / {{ HumanReadable.sizeFormat(inbound.volume ?? 0) }}</template></span>
+              <v-btn size="small" variant="tonal" color="warning" :loading="resetting" @click="resetTraffic">{{ $t('inbound.resetTraffic') }}</v-btn>
+            </v-col>
           </v-row>
           <v-tabs
             v-if="HasInData.includes(inbound.type)"
@@ -120,6 +141,8 @@ import Transport from '@/components/Transport.vue'
 import AddrVue from '@/components/Addr.vue'
 import OutJsonVue from '@/components/OutJson.vue'
 import Data from '@/store/modules/data'
+import { HumanReadable } from '@/plugins/utils'
+import { bindableClients, bytesToGb, gbToBytes } from '@/plugins/inbounds'
 export default {
   props: ['visible', 'id', 'inTags', 'tlsConfigs'],
   emits: ['close'],
@@ -128,6 +151,8 @@ export default {
       inbound: createInbound("direct",{ id:0, "tag": "" }),
       title: "add",
       loading: false,
+      resetting: false,
+      HumanReadable,
       side: "s",
       inTypes: InTypes,
       inboundWithUsers: ['mixed', 'socks', 'http', 'shadowsocks', 'vmess', 'trojan', 'naive', 'hysteria', 'shadowtls', 'tuic', 'hysteria2', 'vless', 'anytls'],
@@ -187,7 +212,7 @@ export default {
       }
       else {
         const port = RandomUtil.randomIntRange(10000, 60000)
-        this.inbound = createInbound("direct",{ id: 0, tag: "direct-"+port ,listen: "::", listen_port: port })
+        this.inbound = createInbound("direct",{ id: 0, tag: "direct-"+port ,listen: "::", listen_port: port, enable: true })
         if (this.HasInData.includes(this.inbound.type)){
           this.inbound.addrs = []
           this.inbound.out_json = {}
@@ -209,8 +234,10 @@ export default {
       // Tag change only in add inbound
       const tag = this.$props.id > 0 ? this.inbound.tag : this.inbound.type + "-" + this.inbound.listen_port
       // Use previous data
-      const prevConfig = { id: this.inbound.id, tag: tag, listen: this.inbound.listen?? "::", listen_port: this.inbound.listen_port }
-      this.inbound = createInbound(this.inbound.type, this.inbound.type != this.inTypes.Tun ? prevConfig : { tag: tag })
+      // The switch and the cap belong to the inbound, not its type: kept.
+      const keep = { enable: this.inbound.enable ?? true, volume: this.inbound.volume ?? 0 }
+      const prevConfig = { id: this.inbound.id, tag: tag, listen: this.inbound.listen?? "::", listen_port: this.inbound.listen_port, ...keep }
+      this.inbound = createInbound(this.inbound.type, this.inbound.type != this.inTypes.Tun ? prevConfig : { tag: tag, ...keep })
       if (this.HasInData.includes(this.inbound.type)){
         this.inbound.addrs = []
         this.inbound.out_json = {}
@@ -222,6 +249,20 @@ export default {
     },
     add_addr() {
       this.inbound.addrs?.push(<Addr>{ server: location.hostname, server_port: this.inbound.listen_port })
+    },
+    async resetTraffic() {
+      // Zeroes the counters; an inbound the cap had switched off comes back on.
+      this.resetting = true
+      const success = await Data().save("inbounds", "resetTraffic", this.inbound.tag)
+      this.resetting = false
+      if (success) {
+        const fresh = await Data().loadInbounds([this.inbound.id])
+        if (fresh?.[0]) {
+          this.inbound.up = fresh[0].up ?? 0
+          this.inbound.down = fresh[0].down ?? 0
+          this.inbound.enable = fresh[0].enable ?? true
+        }
+      }
     },
     closeModal() {
       this.updateData(0) // reset
@@ -262,8 +303,19 @@ export default {
       return true
     },
     clients() {
-      return Data().clients?? []
+      // @cluster clients are pushed here by an upstream master and are never
+      // bound by this panel (the backend skips them too).
+      return bindableClients(<any[]>(Data().clients ?? []))
     },
+    enable: {
+      get(): boolean { return this.inbound.enable !== false },
+      set(v: boolean) { this.inbound.enable = v },
+    },
+    volumeGb: {
+      get(): number { return bytesToGb(this.inbound.volume ?? 0) },
+      set(v: unknown) { this.inbound.volume = gbToBytes(v) },
+    },
+    usedBytes(): number { return (this.inbound.up ?? 0) + (this.inbound.down ?? 0) },
     hasUser() {
       if (this.$props.id > 0) return false
       if (!this.inboundWithUsers.includes(this.inbound.type)) return false

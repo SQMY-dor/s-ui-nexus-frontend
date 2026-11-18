@@ -48,6 +48,9 @@ export interface RemoteInbound {
   type: string
   tag: string
   adopted: boolean
+  // Whether clients can be bound to it once adopted (the backend's
+  // nodeInboundTakesUsers); absent from an older master = treat as false.
+  takesUsers?: boolean
 }
 
 export const defaultNode = (): Node => ({
