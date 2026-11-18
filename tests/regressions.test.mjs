@@ -48,3 +48,34 @@ test('copy handles HTTPS, denied permission and plain HTTP inside a dialog', asy
   assert.equal(await writeClipboard('test-key'), false)
   assert.equal(await writeClipboard(''), false)
 })
+
+test('HTTP 401 and the legacy 200 "Invalid login" body are both an invalid login (s-ui-nexus#24)', async () => {
+  const { errorToMsg, isInvalidLogin, INVALID_LOGIN } = await import('../src/plugins/response.ts')
+  // Current backend: 401 JSON, with or without a body.
+  const unauthorized = errorToMsg({ response: { status: 401, data: { success: false, msg: INVALID_LOGIN } }, toString: () => 'AxiosError: Request failed with status code 401' })
+  assert.equal(isInvalidLogin(unauthorized), true)
+  assert.equal(isInvalidLogin(errorToMsg({ response: { status: 401, data: '' } })), true)
+  assert.equal(isInvalidLogin(errorToMsg({ response: { status: 401, data: { success: false, msg: 'invalid token' } } })), true)
+  // Legacy backend: 200 body.
+  assert.equal(isInvalidLogin(normalizeResponse({ success: false, msg: 'Invalid login' })), true)
+  // Not a login problem.
+  assert.equal(isInvalidLogin(normalizeResponse({ success: true, msg: 'Invalid login' })), false)
+  assert.equal(isInvalidLogin(normalizeResponse({ success: false, msg: 'apply failed' })), false)
+  const notFound = errorToMsg({ response: { status: 404, data: { success: false, msg: 'subscription not found' } } })
+  assert.equal(notFound.msg, 'subscription not found')
+  assert.equal(isInvalidLogin(notFound), false)
+  const html = errorToMsg({ response: { status: 502, data: '<html>secret</html>' }, toString: () => 'AxiosError: Request failed with status code 502' })
+  assert.ok(!html.msg.includes('secret'))
+  assert.equal(errorToMsg(new Error('Network Error')).msg, 'Error: Network Error')
+})
+
+test('panel HTTP clients route 401 to the login handler', async () => {
+  const { readFileSync } = await import('node:fs')
+  const httputil = readFileSync(new URL('../src/plugins/httputil.ts', import.meta.url), 'utf8')
+  assert.match(httputil, /msg = errorToMsg\(e\)/)
+  assert.doesNotMatch(httputil, /msg: e\.toString\(\)/)
+  assert.match(httputil, /isInvalidLogin\(msg\)/)
+  const webauthn = readFileSync(new URL('../src/plugins/webauthn.ts', import.meta.url), 'utf8')
+  assert.match(webauthn, /errorToMsg\(e\)/)
+  assert.doesNotMatch(webauthn, /unwrap\(await api\./)
+})

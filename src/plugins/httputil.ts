@@ -4,17 +4,14 @@ import router from '@/router'
 import { push } from 'notivue'
 import type { AxiosRequestConfig } from 'axios'
 
-import { normalizeResponse, type Msg } from './response'
+import { errorToMsg, isInvalidLogin, normalizeResponse, type Msg } from './response'
 export type { Msg } from './response'
 
 function _handleMsg(msg: Msg): void {
   if (msg.warning) push.warning({ message: i18n.global.t('feedback.' + msg.warning) })
   if(msg.msg){
-    if (!msg.success && msg.msg == "Invalid login") {
-      push.error({
-        title: i18n.global.t('invalidLogin'),
-      })
-      logout()
+    if (isInvalidLogin(msg)) {
+      handleInvalidLogin()
       return
     }
     if (msg.success) {
@@ -27,6 +24,26 @@ function _handleMsg(msg: Msg): void {
         message: msg.msg
       })
     }
+  }
+}
+
+let invalidLoginPending = false
+
+// handleInvalidLogin runs once per expired session (the panel polls several
+// endpoints at a time), shows the toast and sends the user to the login page.
+// router.push('/login') resolves under the configured base path.
+export const handleInvalidLogin = async () => {
+  if (invalidLoginPending) return
+  invalidLoginPending = true
+  try {
+    push.error({
+      title: i18n.global.t('invalidLogin'),
+    })
+    await HttpUtils.get('api/logout')
+    // The session is already gone; go to the login page even if logout fails.
+    router.push('/login')
+  } finally {
+    invalidLoginPending = false
   }
 }
 
@@ -44,7 +61,7 @@ const HttpUtils = {
         const resp = await api.get(url, { params: data, ...options })
         msg = normalizeResponse(resp.data)
     } catch (e: any) {
-        msg = { success: false, msg: e.toString(), obj: null }
+        msg = errorToMsg(e)
     }
     _handleMsg(msg)
     return msg
@@ -55,7 +72,7 @@ const HttpUtils = {
         const resp = await api.post(url, data, options)
         msg = normalizeResponse(resp.data)
     } catch (e: any) {
-        msg = { success: false, msg: e.toString(), obj: null }
+        msg = errorToMsg(e)
     }
     _handleMsg(msg)
     return msg
