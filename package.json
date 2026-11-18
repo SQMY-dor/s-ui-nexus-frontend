@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "build:cf": "vue-tsc --noEmit && node cloudflare/build.mjs"
   },
   "dependencies": {
     "@mdi/font": "7.4.47",
