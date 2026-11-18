@@ -5,7 +5,7 @@
  */
 
 // Composables
-import { createApp, ref } from 'vue'
+import { createApp, defineAsyncComponent, ref } from 'vue'
 
 // Components
 import App from './App.vue'
@@ -21,7 +21,6 @@ import { registerPlugins } from '@/plugins'
 
 // Locale
 import { i18n } from '@/locales'
-import Vue3PersianDatetimePicker from 'vue3-persian-datetime-picker'
 import JsonObjectEditor from '@/components/JsonObjectEditor.vue'
 
 // Notivue
@@ -40,6 +39,10 @@ const notivue = createNotivue({
   },
 })
 
+// The date picker pulls in moment + moment-jalaali; load it only when a page
+// actually renders one so it stays out of the login bundle.
+const DatePicker = defineAsyncComponent(() => import('vue3-persian-datetime-picker'))
+
 const loading = ref(false)
 
 const app = createApp(App)
@@ -52,6 +55,6 @@ app
   .use(store)
   .use(i18n)
   .use(notivue)
-  .component('DatePicker', Vue3PersianDatetimePicker)
+  .component('DatePicker', DatePicker)
   .component('JsonObjectEditor', JsonObjectEditor)
   .mount('#app')

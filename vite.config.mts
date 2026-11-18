@@ -5,15 +5,24 @@ import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 // Utilities
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
-import { randomBytes } from 'crypto'
+import mdiWoff2 from './scripts/vite-mdi-woff2.mjs'
 
-function getUniqueFileName(template) {
-  if (template.includes('.js') || template.includes('.css')) {
-    const hash = randomBytes(8).toString('hex')
-    return template.replace('[name]', hash)
-  }
-  return template
-}
+// Vendor groups for code splitting. A group chunk is only loaded by the chunks
+// that use it, so chart/qr/yaml/date-picker code stays off the login page.
+const vendorGroups = [
+  { name: 'vendor-vue', test: /[\\/]node_modules[\\/](@vue|vue|vue-router|pinia|vue-i18n|@intlify)[\\/]/, priority: 30 },
+  { name: 'vendor-vuetify', test: /[\\/]node_modules[\\/]vuetify[\\/]/, priority: 25 },
+  { name: 'vendor-chart', test: /[\\/]node_modules[\\/](chart\.js|vue-chartjs|@kurkle)[\\/]/, priority: 20 },
+  { name: 'vendor-qr', test: /[\\/]node_modules[\\/](qrcode\.vue|qrcode)[\\/]/, priority: 20 },
+  { name: 'vendor-datepicker', test: /[\\/]node_modules[\\/](vue3-persian-datetime-picker|moment|moment-jalaali|jalaali-js)[\\/]/, priority: 20 },
+  { name: 'vendor-yaml', test: /[\\/]node_modules[\\/]yaml[\\/]/, priority: 20 },
+]
+
+// The Go backend embeds dist/ with `//go:embed *`, which skips files whose
+// names start with '.' or '_' (e.g. Vite's `_plugin-vue_export-helper`).
+// Strip such prefixes so every chunk actually ships.
+const embedSafe = (name: string) => name.replace(/^[._]+/, '') || 'chunk'
+const jsFileName = (chunk: { name: string }) => 'assets/' + embedSafe(chunk.name) + '-[hash].js'
 
 export default defineConfig({
   base: '',
@@ -21,6 +30,7 @@ export default defineConfig({
     vue({
       template: { transformAssetUrls },
     }),
+    mdiWoff2(),
     vuetify({
       autoImport: true,
       styles: {
@@ -31,15 +41,16 @@ export default defineConfig({
   build: {
     manifest: false,
     outDir: 'dist',
-    chunkSizeWarningLimit: 2000,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        codeSplitting: false,
-        entryFileNames: getUniqueFileName('assets/[name].js'),
-        chunkFileNames: getUniqueFileName('assets/[name].js'),
+        codeSplitting: { groups: vendorGroups },
+        // Content hashes: assets/ is served with immutable caching, so a
+        // file name must change whenever its content does.
+        entryFileNames: jsFileName,
+        chunkFileNames: jsFileName,
         assetFileNames: (assetInfo) => {
           if (assetInfo.names.some(name => name.endsWith('.css')))
-            return getUniqueFileName('assets/[name].css')
+            return 'assets/' + embedSafe(assetInfo.names[0].replace(/\.css$/, '')) + '-[hash].css'
           return 'assets/' + assetInfo.names[0]
         },
       },
