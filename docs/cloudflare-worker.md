@@ -28,7 +28,7 @@ npx wrangler deploy -c .cf/wrangler.jsonc
 ## 面板端设置
 - **Web 域名（webDomain）**：留空，或设为源站域名 `panel.example.com`（Worker 回源时 Host 是源站域名）。不要设成边缘域名。
 - **Passkey**：rpId 设为边缘域名 `edge.example.com`。
-- **OIDC**：回调地址改为 `https://edge.example.com/app/api/...`（与原路径相同，只换域名）。
+- **OIDC**：回调地址改为 `https://edge.example.com/app/api/oidc-callback`。
 - 在面板里修改 Web 域名/端口/路径后，页面会跳到新的源站地址，这是正常的；回到边缘域名即可。
 
 ## 安全建议
@@ -45,3 +45,5 @@ npx wrangler deploy -c .cf/wrangler.jsonc
 ## 能分摊什么
 - 分摊：首屏和静态资源流量、带宽，以及海外/跨网访问的加载速度。
 - 不分摊：API 请求、节点心跳、订阅（`sub`）仍由面板处理。
+
+> AI/自动化执行版：[`docs/cloudflare-worker.agent.md`](cloudflare-worker.agent.md)
