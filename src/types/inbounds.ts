@@ -51,6 +51,13 @@ interface InboundBasics extends Listen {
   id: number
   type: InType
   tag: string
+  // Panel fields (never sent to sing-box). enable absent = on. volume is the
+  // traffic cap in bytes (0 = unlimited); up/down are the counters the stats
+  // flush maintains, read-only here.
+  enable?: boolean
+  volume?: number
+  up?: number
+  down?: number
   tls_id: number
   addrs?: Addr[]
   out_json?: any
