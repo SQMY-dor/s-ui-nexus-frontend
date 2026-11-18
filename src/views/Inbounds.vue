@@ -24,7 +24,13 @@
       <v-card rounded="xl" elevation="5" min-width="200" :title="item.tag">
         <v-card-subtitle style="margin-top: -15px;">
           <v-row>
-            <v-col>{{ item.type }}</v-col>
+            <v-col>
+              {{ item.type }}
+              <v-chip v-if="item.node_id" density="compact" size="small" color="info" variant="tonal" prepend-icon="mdi-server-network" class="ms-1">
+                {{ nodeName(item) }}
+                <v-tooltip activator="parent" location="top" :text="$t('node.replicaHint')"></v-tooltip>
+              </v-chip>
+            </v-col>
           </v-row>
         </v-card-subtitle>
         <v-card-text>
@@ -70,33 +76,39 @@
         </v-card-text>
         <v-divider></v-divider>
         <v-card-actions style="padding: 0;">
-          <v-btn icon="mdi-file-edit" @click="showModal(item.id)">
+          <v-btn v-if="!item.node_id" icon="mdi-file-edit" @click="showModal(item.id)">
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('actions.edit')"></v-tooltip>
           </v-btn>
-          <v-btn icon="mdi-file-remove" style="margin-inline-start:0;" color="warning" @click="delOverlay[index] = true">
+          <span v-else class="d-inline-block">
+            <v-btn icon="mdi-file-lock" disabled>
+              <v-icon />
+            </v-btn>
+            <v-tooltip activator="parent" location="top" :text="$t('node.manageOnNode')"></v-tooltip>
+          </span>
+          <v-btn :icon="item.node_id ? 'mdi-link-variant-remove' : 'mdi-file-remove'" style="margin-inline-start:0;" color="warning" @click="delOverlay[index] = true">
             <v-icon />
-            <v-tooltip activator="parent" location="top" :text="$t('actions.del')"></v-tooltip>
+            <v-tooltip activator="parent" location="top" :text="item.node_id ? $t('node.unadopt') : $t('actions.del')"></v-tooltip>
           </v-btn>
           <v-overlay
             v-model="delOverlay[index]"
             contained
             class="align-center justify-center"
           >
-            <v-card :title="$t('actions.del')" rounded="lg">
+            <v-card :title="item.node_id ? $t('node.unadopt') : $t('actions.del')" rounded="lg" max-width="320">
               <v-divider></v-divider>
-              <v-card-text>{{ $t('confirm') }}</v-card-text>
+              <v-card-text>{{ item.node_id ? $t('node.unadoptConfirm') : $t('confirm') }}</v-card-text>
               <v-card-actions>
                 <v-btn color="error" variant="outlined" @click="delInbound(item.id)">{{ $t('yes') }}</v-btn>
                 <v-btn color="success" variant="outlined" @click="delOverlay[index] = false">{{ $t('no') }}</v-btn>
               </v-card-actions>
             </v-card>
           </v-overlay>
-          <v-btn icon="mdi-content-duplicate" :loading="cloneLoading" @click="clone(item.id)">
+          <v-btn v-if="!item.node_id" icon="mdi-content-duplicate" :loading="cloneLoading" @click="clone(item.id)">
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('actions.clone')"></v-tooltip>
           </v-btn>
-          <v-btn icon="mdi-chart-line" @click="showStats(item.tag)" v-if="Data().enableTraffic">
+          <v-btn icon="mdi-chart-line" @click="showStats(item.tag)" v-if="Data().enableTraffic && !item.node_id">
             <v-icon />
             <v-tooltip activator="parent" location="top" :text="$t('stats.graphTitle')"></v-tooltip>
           </v-btn>
@@ -113,6 +125,9 @@ import Stats from '@/layouts/modals/Stats.vue'
 import { computed, ref } from 'vue'
 import { createInbound, Inbound } from '@/types/inbounds'
 import RandomUtil from '@/plugins/randomUtil'
+import { replicaNodeName } from '@/plugins/cluster'
+
+const nodeName = (inbound: any): string => replicaNodeName(inbound, Data().nodes ?? [])
 
 const inbounds = computed((): Inbound[] => {
   return <Inbound[]> Data().inbounds

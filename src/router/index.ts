@@ -65,6 +65,16 @@ const routes = [
 		redirect: '/analytics',
       },
       {
+        path: '/nodes',
+        name: 'pages.nodes',
+        component: () => import('@/views/Nodes.vue'),
+      },
+      {
+        path: '/domains',
+        name: 'pages.domains',
+        component: () => import('@/views/Domains.vue'),
+      },
+      {
         path: '/admins',
         name: 'pages.admins',
         component: () => import('@/views/Admins.vue'),

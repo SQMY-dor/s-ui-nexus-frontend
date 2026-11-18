@@ -4,6 +4,7 @@ import { push } from 'notivue'
 import { i18n } from '@/locales'
 import { Inbound } from '@/types/inbounds'
 import { Client } from '@/types/clients'
+import type { Node, NodeStatus } from '@/plugins/cluster'
 
 const Data = defineStore('Data', {
   state: () => ({ 
@@ -22,6 +23,10 @@ const Data = defineStore('Data', {
     endpoints: <any[]>[],
     clients: <any>[],
     tlsConfigs: <any[]>[],
+    // Cluster (s-ui-nexus): node list and the live heartbeat snapshot that
+    // rides on every load poll (keyed by node id).
+    nodes: <Node[]>[],
+    nodesStatus: <Record<string, NodeStatus>>{},
   }),
   actions: {
     async loadData() {
@@ -32,6 +37,7 @@ const Data = defineStore('Data', {
         const payload = msg.obj && typeof msg.obj === 'object' ? msg.obj : {}
         const nextCursor = Number(payload.lastUpdate)
         if (Number.isFinite(nextCursor) && nextCursor >= 0) this.lastLoad = nextCursor
+        if (Object.hasOwn(payload, 'nodesStatus')) this.nodesStatus = payload.nodesStatus ?? {}
         if (Object.hasOwn(payload, 'onlines')) this.onlines = payload.onlines ?? { inbound: [], outbound: [], user: [] }
         if (payload.lastLog && !payload.coreApplying && payload.lastLog !== this.lastCoreError) {
           this.lastCoreError = payload.lastLog
@@ -58,6 +64,12 @@ const Data = defineStore('Data', {
       if (Object.hasOwn(data, 'services')) this.services = data.services ?? []
       if (Object.hasOwn(data, 'endpoints')) this.endpoints = data.endpoints ?? []
       if (Object.hasOwn(data, 'tls')) this.tlsConfigs = data.tls ?? []
+      if (Object.hasOwn(data, 'nodes')) this.nodes = data.nodes ?? []
+    },
+    async loadNodes(): Promise<Node[]> {
+      const msg = await HttpUtils.get('api/nodes')
+      if (msg.success && msg.obj) this.setNewData(msg.obj)
+      return this.nodes
     },
     async loadInbounds(ids: number[]): Promise<Inbound[]> {
       const options = ids.length > 0 ? {id: ids.join(",")} : {}

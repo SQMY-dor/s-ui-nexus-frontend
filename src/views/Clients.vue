@@ -146,7 +146,7 @@
         <template v-slot:item.inbounds="{ item }">
           <span>
           <v-tooltip activator="parent" dir="ltr" location="start" v-if="item.inbounds != ''">
-            <span v-for="i in item.inbounds" :key="i">{{ inbounds.find(inb => inb.id == i)?.tag }}<br /></span>
+            <span v-for="i in item.inbounds" :key="i">{{ inboundTags.find(inb => inb.value == i)?.title ?? inbounds.find(inb => inb.id == i)?.tag }}<br /></span>
           </v-tooltip>
           {{ item.inbounds?.length }}
           </span>
@@ -239,6 +239,7 @@
 }
 </style>
 <script lang="ts" setup>
+import { replicaNodeName } from '@/plugins/cluster'
 import Data from '@/store/modules/data'
 import ClientModal from '@/layouts/modals/Client.vue'
 import ClientAddBulk from '@/layouts/modals/ClientAddBulk.vue'
@@ -267,7 +268,12 @@ const inbounds = computed((): any[] => {
 
 const inboundTags = computed((): any[] => {
   if (!inbounds.value) return []
-  return inbounds.value?.filter(i => i.tag != "" && i.users).map(i => { return { title: i.tag, value: i.id } })
+  // Cluster replicas (node_id set) are labelled with their node so the same
+  // protocol on several machines stays distinguishable.
+  return inbounds.value?.filter(i => i.tag != "" && i.users).map(i => {
+    const node = replicaNodeName(i, Data().nodes ?? [])
+    return { title: node ? `[${node}] ${i.tag}` : i.tag, value: i.id }
+  })
 })
 
 const groups = computed((): string[] => {
