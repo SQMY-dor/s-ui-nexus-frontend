@@ -1,0 +1,9 @@
+[
+  {
+    "id": "GHSA-fc5q-39xc-vjpf",
+    "package": "picomatch",
+    "maxAffected": "4.0.7",
+    "reason": "no patched release yet; picomatch runs only in build tooling (vite, eslint, vue-router build plugin) on globs from our own config, never on user input, and is not in the shipped bundle",
+    "added": "2026-11-18"
+  }
+]
