@@ -1,5 +1,7 @@
 import api from './api'
 import { i18n } from '@/locales'
+import { handleInvalidLogin } from './httputil'
+import { errorToMsg, isInvalidLogin, normalizeResponse } from './response'
 
 const decode = (value: string): ArrayBuffer => {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)
@@ -52,6 +54,22 @@ const serialize = (credential: PublicKeyCredential): any => {
   return result
 }
 
+// call runs one passkey request; an HTTP error (401 included) becomes an Error
+// carrying the server's message, and an expired session goes to the login page.
+const call = async (request: Promise<any>) => {
+  let response: any
+  try {
+    response = await request
+  } catch (e: any) {
+    const msg = errorToMsg(e)
+    if (isInvalidLogin(msg)) handleInvalidLogin()
+    throw new Error(msg.msg || i18n.global.t('security.webauthnFailed'), { cause: e })
+  }
+  // Older backends answer an expired session with HTTP 200 "Invalid login".
+  if (isInvalidLogin(normalizeResponse(response?.data))) handleInvalidLogin()
+  return unwrap(response)
+}
+
 const unwrap = (response: any) => {
   const value = response.data
   if (!value?.success) throw new Error(value?.msg || i18n.global.t('security.webauthnFailed'))
@@ -89,24 +107,24 @@ const passkeyName = (credential: PublicKeyCredential, platform: ClientPlatform):
 }
 
 export async function registerPasskey(name = '') {
-  const begin = unwrap(await api.get('api/passkey-register-begin'))
+  const begin = await call(api.get('api/passkey-register-begin'))
   const credential = await navigator.credentials.create({ publicKey: publicKeyOptions(begin.options, true) as PublicKeyCredentialCreationOptions }) as PublicKeyCredential | null
   if (!credential) throw new Error(i18n.global.t('security.passkeyCancelled'))
   const platform = clientPlatform()
   const fallbackName = passkeyName(credential, platform)
   const params = new URLSearchParams({ sessionId: begin.sessionId, platform })
   if (name.trim()) params.set('name', name.trim())
-  const result = unwrap(await api.post(`api/passkey-register-finish?${params.toString()}`, serialize(credential), {
+  const result = await call(api.post(`api/passkey-register-finish?${params.toString()}`, serialize(credential), {
     headers: { 'Content-Type': 'application/json', 'X-WebAuthn-Session': begin.sessionId },
   }))
   return result?.name || name.trim() || fallbackName
 }
 
 export async function loginWithPasskey(username: string) {
-  const begin = unwrap(await api.get('api/passkey-login-begin', { params: { username } }))
+  const begin = await call(api.get('api/passkey-login-begin', { params: { username } }))
   const credential = await navigator.credentials.get({ publicKey: publicKeyOptions(begin.options, false) as PublicKeyCredentialRequestOptions }) as PublicKeyCredential | null
   if (!credential) throw new Error(i18n.global.t('security.loginCancelled'))
-  return unwrap(await api.post(`api/passkey-login-finish?sessionId=${encodeURIComponent(begin.sessionId)}`, serialize(credential), {
+  return await call(api.post(`api/passkey-login-finish?sessionId=${encodeURIComponent(begin.sessionId)}`, serialize(credential), {
     headers: { 'Content-Type': 'application/json', 'X-WebAuthn-Session': begin.sessionId },
   }))
 }
