@@ -32,7 +32,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@babel/types": "^7.29.0",
+    "@babel/types": "^8.1.2",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.9.1",
     "@vitejs/plugin-vue": "^6.0.7",
