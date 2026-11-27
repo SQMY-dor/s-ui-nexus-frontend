@@ -1,46 +1,71 @@
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="800">
-    <v-card class="rounded-lg">
-      <v-card-title>
-        {{ $t('actions.' + title) + " " + $t('objects.endpoint') }}
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text style="padding: 0 16px; overflow-y: scroll;">
-		<div class="d-flex justify-end pt-2"><JsonObjectEditor v-model="endpoint" /></div>
-        <v-row>
+  <v-dialog transition="dialog-bottom-transition" width="100%" max-width="880">
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-vpn" size="18" />
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-semibold text-truncate">
+            {{ $t('actions.' + title) + ' ' + $t('objects.endpoint') }}
+          </div>
+        </div>
+        <div class="d-flex align-center ga-2 flex-shrink-0">
+          <JsonObjectEditor v-model="endpoint" />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            :disabled="loading"
+            :aria-label="$t('actions.close')"
+            @click="closeModal"
+          />
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <div class="sui-section-header">
+          <span>{{ $t('client.basics') }}</span>
+        </div>
+
+        <v-row class="mb-3">
           <v-col cols="12" sm="6" md="4">
             <v-select
-            hide-details
-            :disabled="endpoint.id > 0"
-            :label="$t('type')"
-            :items="Object.keys(epTypes).map((key,index) => ({title: key, value: Object.values(epTypes)[index]}))"
-            v-model="endpoint.type"
-            @update:modelValue="changeType">
-            </v-select>
+              v-model="endpoint.type"
+              hide-details
+              :disabled="endpoint.id > 0"
+              :label="$t('type')"
+              :items="Object.keys(epTypes).map((key, index) => ({ title: key, value: Object.values(epTypes)[index] }))"
+              @update:model-value="changeType"
+            />
           </v-col>
           <v-col cols="12" sm="6" md="4">
-            <v-text-field v-model="endpoint.tag" :label="$t('objects.tag')" hide-details></v-text-field>
+            <v-text-field v-model="endpoint.tag" class="sui-mono" :label="$t('objects.tag')" hide-details />
           </v-col>
         </v-row>
-        <Wireguard v-if="endpoint.type == epTypes.Wireguard"
-          :data="endpoint"
-          @getWgPubKey="getWgPubKey"
-          @newWgKey="newWgKey"
-          @addPeer="addWgPeer"
-          @delPeer="delWgPeer"
-          @refreshPeerKey="refreshWgPeerKey" />
-        <Warp v-if="endpoint.type == epTypes.Warp" :data="endpoint" />
-        <TailscaleVue v-if="endpoint.type == epTypes.Tailscale" :data="endpoint" />
-        <Dial :dial="endpoint" />
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="primary"
-          variant="outlined"
-          :disabled="loading"
-          @click="closeModal"
-        >
+
+        <div class="d-flex flex-column ga-3">
+          <Wireguard
+            v-if="endpoint.type == epTypes.Wireguard"
+            :data="endpoint"
+            @getWgPubKey="getWgPubKey"
+            @newWgKey="newWgKey"
+            @addPeer="addWgPeer"
+            @delPeer="delWgPeer"
+            @refreshPeerKey="refreshWgPeerKey"
+          />
+          <Warp v-if="endpoint.type == epTypes.Warp" :data="endpoint" />
+          <TailscaleVue v-if="endpoint.type == epTypes.Tailscale" :data="endpoint" />
+          <Dial :dial="endpoint" />
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" :disabled="loading" @click="closeModal">
           {{ $t('actions.close') }}
         </v-btn>
         <v-btn
@@ -54,14 +79,14 @@
         </v-btn>
         <v-btn
           color="primary"
-          variant="tonal"
+          variant="flat"
           :loading="loading"
           :disabled="loading"
           @click="saveChanges(true)"
         >
           {{ $t('actions.saveApply') }}
         </v-btn>
-      </v-card-actions>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -135,9 +160,9 @@ export default {
   emits: ['close'],
   data() {
     return {
-      endpoint: createEndpoint("wireguard",{ "tag": "" }),
-      title: "add",
-      tab: "t1",
+      endpoint: createEndpoint('wireguard', { tag: '' }),
+      title: 'add',
+      tab: 't1',
       loading: false,
       epTypes: EpTypes,
     }
@@ -147,20 +172,19 @@ export default {
       if (id > 0) {
         const newData = JSON.parse(this.$props.data)
         this.endpoint = createEndpoint(newData.type, newData)
-        this.title = "edit"
-      }
-      else {
-        this.endpoint.type = this.$props.initialType || "wireguard"
+        this.title = 'edit'
+      } else {
+        this.endpoint.type = this.$props.initialType || 'wireguard'
         this.endpoint.listen_port = RandomUtil.randomIntRange(10000, 60000)
         this.changeType()
-        this.title = "add"
+        this.title = 'add'
       }
-      this.tab = "t1"
+      this.tab = 't1'
     },
     async changeType() {
       // Tag change only in add endpoint
-      const tag = this.endpoint.type + "-" + RandomUtil.randomSeq(3)
-      
+      const tag = this.endpoint.type + '-' + RandomUtil.randomSeq(3)
+
       // Use previous data
       let prevConfig = {}
       switch (this.endpoint.type) {
@@ -188,8 +212,8 @@ export default {
             peers: [],
             ext: {
               public_key: wgKeys.public_key,
-              keys: []
-            }
+              keys: [],
+            },
           }
           break
         }
@@ -210,61 +234,61 @@ export default {
     },
     async saveChanges(apply = true) {
       if (!this.$props.visible || this.loading) return
-      
+
       // check duplicate tag
-      const isDuplicatedTag = Data().checkTag("endpoint",this.endpoint.id, this.endpoint.tag)
+      const isDuplicatedTag = Data().checkTag('endpoint', this.endpoint.id, this.endpoint.tag)
       if (isDuplicatedTag) return
 
       // save data
       this.loading = true
       try {
-        const success = await Data().save("endpoints", this.$props.id == 0 ? "new" : "edit", this.endpoint, undefined, apply)
+        const success = await Data().save('endpoints', this.$props.id == 0 ? 'new' : 'edit', this.endpoint, undefined, apply)
         if (success) this.closeModal()
       } finally {
         this.loading = false
       }
     },
-    async genWgKey(){
+    async genWgKey() {
       this.loading = true
-      const msg = await HttpUtils.get('api/keypairs', { k: "wireguard" })
+      const msg = await HttpUtils.get('api/keypairs', { k: 'wireguard' })
       this.loading = false
-      const result = { private_key: "", public_key: "" }
+      const result = { private_key: '', public_key: '' }
       if (msg.success) {
-        msg.obj.forEach((line:string) => {
-          if (line.startsWith("PrivateKey")){
+        msg.obj.forEach((line: string) => {
+          if (line.startsWith('PrivateKey')) {
             result.private_key = line.substring(12)
           }
-          if (line.startsWith("PublicKey")){
+          if (line.startsWith('PublicKey')) {
             result.public_key = line.substring(11)
           }
         })
       } else {
         push.error({
-          message: i18n.global.t('error') + ": " + msg.obj
+          message: i18n.global.t('error') + ': ' + msg.obj,
         })
       }
       return result
     },
-    async newWgKey(){
+    async newWgKey() {
       this.loading = true
       const newKeys = await this.genWgKey()
       this.endpoint.private_key = newKeys.private_key
-      if (!this.endpoint.ext) this.endpoint.ext = {keys: []}
+      if (!this.endpoint.ext) this.endpoint.ext = { keys: [] }
       this.endpoint.ext.public_key = newKeys.public_key
       this.loading = false
     },
     async getWgPubKey(private_key: string) {
-      if (!this.endpoint.ext) this.endpoint.ext = {keys: []}
+      if (!this.endpoint.ext) this.endpoint.ext = { keys: [] }
       this.loading = true
-      const msg = await HttpUtils.get('api/keypairs', { k: "wireguard", o: private_key })
+      const msg = await HttpUtils.get('api/keypairs', { k: 'wireguard', o: private_key })
       if (msg.success) {
         this.endpoint.ext.public_key = msg.obj[0]
       }
       this.loading = false
     },
-    async addWgPeer(kind = 'generated_client'){
+    async addWgPeer(kind = 'generated_client') {
       if (this.endpoint.type != EpTypes.Wireguard) return
-      if (!this.endpoint.ext) this.endpoint.ext = {keys: []}
+      if (!this.endpoint.ext) this.endpoint.ext = { keys: [] }
       if (kind === 'existing_peer') {
         if (!(this.endpoint.peers || []).some((peer: any) => peer.peer_key_mode === 'generated_client')) {
           this.endpoint.client_export_enabled = false
@@ -314,7 +338,7 @@ export default {
       })
       this.loading = false
     },
-    findFreeIP(ipv6: boolean): string{
+    findFreeIP(ipv6: boolean): string {
       const used = new Set(([
         ...(this.endpoint.address || []),
         ...this.endpoint.peers.flatMap((peer: any) => peer.server_allowed_ips || peer.allowed_ips || []),
@@ -328,7 +352,7 @@ export default {
       }
       return ''
     },
-    delWgPeer(index: number){
+    delWgPeer(index: number) {
       if (this.endpoint.type != EpTypes.Wireguard) return
       this.endpoint.ext.keys = this.endpoint.ext.keys.filter((key: any) => key.public_key != this.endpoint.peers[index].public_key)
       this.endpoint.peers.splice(index, 1)
@@ -336,7 +360,7 @@ export default {
     async refreshWgPeerKey(index: number) {
       this.loading = true
       const newKeys = await this.genWgKey()
-      if (!this.endpoint.ext) this.endpoint.ext = {keys: []}
+      if (!this.endpoint.ext) this.endpoint.ext = { keys: [] }
       const indexKeys = this.endpoint.ext.keys.findIndex((key: any) => key.public_key == this.endpoint.peers[index].public_key)
       this.endpoint.ext.keys[indexKeys == -1 ? this.endpoint.ext.keys.length : indexKeys] = newKeys
       this.endpoint.peers[index].public_key = newKeys.public_key
@@ -352,6 +376,6 @@ export default {
       }
     },
   },
-  components: { Dial, Wireguard, Warp, TailscaleVue }
+  components: { Dial, Wireguard, Warp, TailscaleVue },
 }
 </script>

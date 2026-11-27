@@ -1,88 +1,180 @@
 <!-- Ported from shenaba/2s-ui (GPL-3.0), adapted for s-ui-nexus. -->
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="640" :model-value="visible" @update:model-value="v => { if (!v) emit('close') }">
-    <v-card class="rounded-lg" :loading="loading">
-      <v-card-title>
-        {{ isNew ? $t('actions.add') + ' ' + $t('objects.node') : $t('actions.edit') + ' ' + (original?.name ?? '') }}
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text>
+  <v-dialog
+    transition="dialog-bottom-transition"
+    width="100%"
+    max-width="660"
+    :model-value="visible"
+    @update:model-value="v => { if (!v) emit('close') }"
+  >
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-server-network" size="18" />
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-semibold text-truncate">
+            {{ isNew ? $t('actions.add') + ' ' + $t('objects.node') : $t('actions.edit') + ' ' + (original?.name ?? '') }}
+          </div>
+        </div>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          :aria-label="$t('actions.close')"
+          @click="emit('close')"
+        />
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <div class="sui-section-header">
+          <span>{{ $t('client.basics') }}</span>
+        </div>
+
         <v-row>
-          <v-col cols="12" sm="6">
-            <v-text-field v-model="node.name" :label="$t('node.name')" placeholder="jp-tokyo-1" :hint="$t('node.nameHint')" persistent-hint />
+          <v-col cols="12" sm="7">
+            <v-text-field
+              v-model="node.name"
+              :label="$t('node.name')"
+              placeholder="jp-tokyo-1"
+              :hint="$t('node.nameHint')"
+              persistent-hint
+            />
           </v-col>
-          <v-col cols="12" sm="6" class="d-flex align-center">
-            <v-switch color="primary" v-model="node.enable" :label="$t('enable')" hide-details />
+          <v-col cols="12" sm="5" class="d-flex align-center">
+            <v-switch v-model="node.enable" color="primary" :label="$t('enable')" hide-details />
           </v-col>
         </v-row>
-        <v-row>
+
+        <v-row class="mt-1">
           <v-col cols="12" sm="8">
-            <v-text-field v-model="node.baseUrl" dir="ltr" :label="$t('node.baseUrl')" placeholder="https://node.example.com:2095" :hint="$t('node.baseUrlHint')" persistent-hint />
+            <v-text-field
+              v-model="node.baseUrl"
+              dir="ltr"
+              class="sui-mono"
+              :label="$t('node.baseUrl')"
+              placeholder="https://node.example.com:2095"
+              :hint="$t('node.baseUrlHint')"
+              persistent-hint
+            />
           </v-col>
           <v-col cols="12" sm="4">
-            <v-text-field v-model="node.webPath" dir="ltr" :label="$t('node.webPath')" placeholder="/app/" hide-details />
+            <v-text-field
+              v-model="node.webPath"
+              dir="ltr"
+              class="sui-mono"
+              :label="$t('node.webPath')"
+              placeholder="/app/"
+              hide-details
+            />
           </v-col>
         </v-row>
-        <v-row>
+
+        <v-row class="mt-1">
           <v-col cols="12">
             <v-text-field
               v-model="node.token"
               dir="ltr"
+              class="sui-mono"
               :type="showToken ? 'text' : 'password'"
-              :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showToken = !showToken"
               :label="$t('node.token')"
               :placeholder="!isNew && original?.tokenSet ? $t('node.tokenKeep') : ''"
               :hint="!isNew && original?.tokenSet ? $t('node.tokenKeep') : $t('node.tokenHint')"
               persistent-hint
               autocomplete="new-password"
-            />
+            >
+              <template #append-inner>
+                <v-btn
+                  :icon="showToken ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  variant="text"
+                  width="28"
+                  height="28"
+                  :aria-label="showToken ? $t('ui.hidePassword') : $t('ui.showPassword')"
+                  @click="showToken = !showToken"
+                />
+              </template>
+            </v-text-field>
           </v-col>
         </v-row>
+
         <template v-if="isHttps">
-          <v-row>
+          <div class="sui-section-header mt-5">
+            <span>{{ $t('objects.tls') }}</span>
+          </div>
+          <v-row align="start">
             <v-col cols="12" sm="5" class="d-flex align-center">
-              <v-switch color="warning" v-model="node.insecure" :label="$t('node.insecure')" hide-details />
+              <v-switch v-model="node.insecure" color="warning" :label="$t('node.insecure')" hide-details />
             </v-col>
             <v-col cols="12" sm="7">
-              <v-text-field v-model="node.certPin" dir="ltr" :label="$t('node.certPin')" :hint="$t('node.certPinHint')" persistent-hint placeholder="sha256 hex" />
+              <v-text-field
+                v-model="node.certPin"
+                dir="ltr"
+                class="sui-mono"
+                :label="$t('node.certPin')"
+                :hint="$t('node.certPinHint')"
+                persistent-hint
+                placeholder="sha256 hex"
+              />
             </v-col>
           </v-row>
         </template>
-        <v-alert v-else-if="isHttp" type="warning" variant="tonal" density="compact" class="mt-2">{{ $t('node.httpWarn') }}</v-alert>
-        <v-row>
+        <v-alert v-else-if="isHttp" type="warning" variant="tonal" density="compact" class="mt-3">
+          {{ $t('node.httpWarn') }}
+        </v-alert>
+
+        <v-row class="mt-2">
           <v-col cols="12">
             <v-text-field v-model="node.desc" :label="$t('node.desc')" hide-details />
           </v-col>
         </v-row>
+
         <v-alert v-if="errors.length > 0 && triedSave" type="error" variant="tonal" density="compact" class="mt-4">
           <div v-for="e in errors" :key="e">{{ $t(e) }}</div>
         </v-alert>
-        <v-row class="mt-2" align="center">
-          <v-col cols="auto">
-            <v-btn variant="tonal" prepend-icon="mdi-lan-connect" :loading="testing" :disabled="!canTest" @click="testConnection">{{ $t('node.test') }}</v-btn>
-          </v-col>
-          <v-col v-if="testResult" style="min-width: 0;">
+
+        <div class="sui-test-bar mt-4 d-flex align-center flex-wrap ga-3">
+          <v-btn
+            variant="tonal"
+            color="primary"
+            size="small"
+            prepend-icon="mdi-lan-connect"
+            :loading="testing"
+            :disabled="!canTest"
+            @click="testConnection"
+          >
+            {{ $t('node.test') }}
+          </v-btn>
+          <div v-if="testResult" class="d-flex align-center flex-wrap ga-2 min-w-0">
             <template v-if="testResult.state === 'online'">
               <v-chip color="success" size="small" variant="flat">{{ $t('node.status.online') }}</v-chip>
-              <span class="ms-2" dir="ltr">{{ testResult.latency }} {{ $t('date.ms') }} · {{ testResult.appVersion || '-' }} / {{ testResult.coreVersion || '-' }}</span>
+              <span class="sui-mono text-caption" dir="ltr">
+                {{ testResult.latency }} {{ $t('date.ms') }} · {{ testResult.appVersion || '-' }} / {{ testResult.coreVersion || '-' }}
+              </span>
             </template>
             <template v-else-if="testResult.state === 'core-stopped'">
               <v-chip color="warning" size="small" variant="flat">{{ $t('node.status.coreStopped') }}</v-chip>
-              <span class="ms-2">{{ $t('node.testReachable') }}</span>
+              <span class="text-body-2">{{ $t('node.testReachable') }}</span>
             </template>
             <template v-else>
               <v-chip color="error" size="small" variant="flat">{{ $t('node.status.offline') }}</v-chip>
-              <span class="ms-2 text-error" style="word-break: break-word;">{{ testResult.error || '-' }}</span>
+              <span class="text-body-2 text-error sui-wrap-anywhere">{{ testResult.error || '-' }}</span>
             </template>
-          </v-col>
-        </v-row>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" variant="outlined" @click="emit('close')">{{ $t('actions.close') }}</v-btn>
-        <v-btn color="primary" variant="tonal" :loading="loading" @click="saveChanges">{{ $t('actions.save') }}</v-btn>
-      </v-card-actions>
+          </div>
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" @click="emit('close')">
+          {{ $t('actions.close') }}
+        </v-btn>
+        <v-btn color="primary" variant="flat" :loading="loading" @click="saveChanges">
+          {{ $t('actions.save') }}
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -149,3 +241,16 @@ const testConnection = async () => {
   }
 }
 </script>
+
+<style scoped>
+.sui-test-bar {
+  padding: 10px 12px;
+  border-radius: var(--sui-radius-md);
+  border: 1px solid var(--sui-hairline);
+  background-color: rgb(var(--v-theme-surface-light));
+}
+
+.sui-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+</style>

@@ -1,47 +1,143 @@
 <!-- Ported from shenaba/2s-ui (GPL-3.0), adapted for s-ui-nexus. -->
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="600" :persistent="busy" :model-value="visible" @update:model-value="v => { if (!v && !busy) emit('close') }">
-    <v-card class="rounded-lg">
-      <v-card-title>{{ $t('cert.issueTitle') }}</v-card-title>
-      <v-divider></v-divider>
-      <v-card-text>
-        <v-alert type="info" variant="tonal" density="compact" class="mb-4">{{ $t('cert.issueHint') }}</v-alert>
-        <v-row>
-          <v-col cols="12" sm="7">
-            <v-text-field v-model="form.domain" dir="ltr" :label="$t('cert.domain')" placeholder="panel.example.com" :disabled="busy"
-              :error-messages="form.domain && !domainOk ? $t('cert.err.domain') : ''" />
-          </v-col>
-          <v-col cols="12" sm="5">
-            <v-text-field v-model="form.email" dir="ltr" :label="$t('cert.email')" placeholder="you@example.com" :disabled="busy"
-              :hint="$t('cert.emailHint')" persistent-hint :error-messages="!emailOk ? $t('cert.err.email') : ''" />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col cols="12" sm="7">
-            <v-select v-model="form.method" :items="methods" :label="$t('cert.method')" :disabled="busy" :hint="methodHint" persistent-hint />
-          </v-col>
-          <v-col cols="12" sm="5">
-            <v-switch color="primary" v-model="form.behindProxy" :label="$t('cert.behindProxy')" :disabled="busy" hide-details />
-            <v-switch color="warning" v-model="form.force" :label="$t('cert.force')" :disabled="busy" hide-details />
-          </v-col>
-        </v-row>
-        <v-alert v-if="form.force" type="warning" variant="tonal" density="compact" class="mt-2">{{ $t('cert.forceHint') }}</v-alert>
-        <div v-if="busy" class="mt-4">
-          <v-progress-linear indeterminate color="primary" />
-          <div class="text-medium-emphasis mt-2">{{ $t('cert.issuing', { seconds: elapsed }) }}</div>
+  <v-dialog
+    transition="dialog-bottom-transition"
+    width="100%"
+    max-width="640"
+    :persistent="busy"
+    :model-value="visible"
+    @update:model-value="v => { if (!v && !busy) emit('close') }"
+  >
+    <v-card class="sui-modal-card">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-shield-plus-outline" size="18" />
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-semibold text-truncate">
+            {{ $t('cert.issueTitle') }}
+          </div>
         </div>
-        <v-alert v-if="result" type="success" variant="tonal" density="compact" class="mt-4">
-          <div>{{ $t('cert.issuedVia', { method: result.method }) }}</div>
-          <div dir="ltr" class="text-caption">{{ result.certFile }}<br />{{ result.keyFile }}</div>
-          <div v-if="form.behindProxy && !result.reloadCmd" class="mt-1">{{ $t('cert.noReloadHook') }}</div>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          :disabled="busy"
+          :aria-label="$t('actions.close')"
+          @click="emit('close')"
+        />
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+          {{ $t('cert.issueHint') }}
         </v-alert>
-        <v-alert v-if="errorMsg" type="error" variant="tonal" density="compact" class="mt-4" style="white-space: pre-wrap; word-break: break-word;">{{ errorMsg }}</v-alert>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" variant="outlined" :disabled="busy" @click="emit('close')">{{ $t('actions.close') }}</v-btn>
-        <v-btn color="primary" variant="tonal" :loading="busy" :disabled="!domainOk || !emailOk || !!result" @click="issue">{{ $t('cert.issue') }}</v-btn>
-      </v-card-actions>
+
+        <v-row>
+          <v-col cols="12" sm="7">
+            <v-text-field
+              v-model="form.domain"
+              dir="ltr"
+              class="sui-mono"
+              :label="$t('cert.domain')"
+              placeholder="panel.example.com"
+              :disabled="busy"
+              :error-messages="form.domain && !domainOk ? $t('cert.err.domain') : ''"
+            />
+          </v-col>
+          <v-col cols="12" sm="5">
+            <v-text-field
+              v-model="form.email"
+              dir="ltr"
+              :label="$t('cert.email')"
+              placeholder="you@example.com"
+              :disabled="busy"
+              :hint="$t('cert.emailHint')"
+              persistent-hint
+              :error-messages="!emailOk ? $t('cert.err.email') : ''"
+            />
+          </v-col>
+        </v-row>
+
+        <v-row class="mt-1">
+          <v-col cols="12" sm="7">
+            <v-select
+              v-model="form.method"
+              :items="methods"
+              :label="$t('cert.method')"
+              :disabled="busy"
+              :hint="methodHint"
+              persistent-hint
+            />
+          </v-col>
+          <v-col cols="12" sm="5" class="d-flex flex-column justify-center ga-1">
+            <v-switch
+              v-model="form.behindProxy"
+              color="primary"
+              :label="$t('cert.behindProxy')"
+              :disabled="busy"
+              hide-details
+            />
+            <v-switch
+              v-model="form.force"
+              color="warning"
+              :label="$t('cert.force')"
+              :disabled="busy"
+              hide-details
+            />
+          </v-col>
+        </v-row>
+
+        <v-alert v-if="form.force" type="warning" variant="tonal" density="compact" class="mt-3">
+          {{ $t('cert.forceHint') }}
+        </v-alert>
+
+        <div v-if="busy" class="mt-4 sui-progress-box">
+          <v-progress-linear indeterminate color="primary" rounded />
+          <div class="text-body-2 text-medium-emphasis mt-2 sui-num">
+            {{ $t('cert.issuing', { seconds: elapsed }) }}
+          </div>
+        </div>
+
+        <v-alert v-if="result" type="success" variant="tonal" density="compact" class="mt-4">
+          <div class="font-weight-medium">{{ $t('cert.issuedVia', { method: result.method }) }}</div>
+          <div dir="ltr" class="sui-mono text-caption mt-1 sui-wrap-anywhere">
+            {{ result.certFile }}<br />{{ result.keyFile }}
+          </div>
+          <div v-if="form.behindProxy && !result.reloadCmd" class="mt-1 text-caption">
+            {{ $t('cert.noReloadHook') }}
+          </div>
+        </v-alert>
+
+        <v-alert
+          v-if="errorMsg"
+          type="error"
+          variant="tonal"
+          density="compact"
+          class="mt-4 sui-pre-error sui-mono text-caption"
+        >
+          {{ errorMsg }}
+        </v-alert>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" :disabled="busy" @click="emit('close')">
+          {{ $t('actions.close') }}
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :loading="busy"
+          :disabled="!domainOk || !emailOk || !!result"
+          @click="issue"
+        >
+          {{ $t('cert.issue') }}
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -129,3 +225,21 @@ const issue = async () => {
 
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>
+
+<style scoped>
+.sui-progress-box {
+  padding: 12px 14px;
+  border-radius: var(--sui-radius-md);
+  border: 1px solid var(--sui-hairline);
+  background-color: rgb(var(--v-theme-surface-light));
+}
+
+.sui-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.sui-pre-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>

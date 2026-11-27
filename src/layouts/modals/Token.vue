@@ -1,130 +1,185 @@
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="800">
-    <v-card class="rounded-lg" :loading="loading">
-      <v-card-title>
-        <v-row>
-          <v-col>{{ $t('admin.api.title') }}</v-col>
-          <v-spacer></v-spacer>
-          <v-col cols="auto"><v-icon icon="mdi-close-box" @click="$emit('close')" /></v-col>
-        </v-row>
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text>
+  <v-dialog transition="dialog-bottom-transition" width="100%" max-width="800">
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-key-chain" size="18" />
+          </v-avatar>
+          <div class="d-flex align-center ga-2 min-w-0">
+            <div class="text-subtitle-1 font-weight-semibold text-truncate">
+              {{ $t('admin.api.title') }}
+            </div>
+            <v-chip v-if="tokens.length > 0" size="small" color="primary" variant="tonal" class="sui-num">
+              {{ tokens.length }}
+            </v-chip>
+          </div>
+        </div>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          :aria-label="$t('actions.close')"
+          @click="closeModal"
+        />
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
         <v-alert
-          v-if="newToken.token.length>0"
-          color="success"
+          v-if="newToken.token.length > 0"
+          type="success"
+          variant="tonal"
           density="compact"
-          icon="mdi-alert-circle-outline"
+          class="mb-4"
         >
-          {{ $t('admin.api.msg') }}
-          <v-text-field
-            readonly
-            variant="outlined"
-            bg-color="warning"
-            append-inner-icon="mdi-content-copy"
-            @click:append-inner="copyToClipboard(newToken.token)"
-            v-model="newToken.token"
-          ></v-text-field>
+          <div class="text-body-2 mb-2">{{ $t('admin.api.msg') }}</div>
+          <div class="sui-token-box">
+            <code class="sui-mono sui-token-value" dir="ltr">{{ newToken.token }}</code>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              prepend-icon="mdi-content-copy"
+              class="flex-shrink-0"
+              @click="copyToClipboard(newToken.token)"
+            >
+              {{ $t('copyToClipboard') }}
+            </v-btn>
+          </div>
         </v-alert>
-        <v-table density="compact">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>{{ $t('admin.api.token') }}</th>
-              <th>{{ $t('client.desc') }}</th>
-              <th>{{ $t('date.expiry') }}</th>
-              <th>{{ $t('actions.del') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(token, index) of tokens" :key="token.id">
-              <td>{{ token.id }}</td>
-              <td>{{ token.token }}</td>
-              <td>{{ token.desc }}</td>
-              <td>{{ dateFormatted(token.expiry) }}</td>
-              <td>
-                <v-menu
-                  v-model="delOverlay[index]"
-                  :close-on-content-click="false"
-                  location="top center"
-                >
-                  <template v-slot:activator="{ props }">
-                    <v-icon
-                      class="me-2"
-                      color="error"
-                      v-bind="props"
-                    >
-                      mdi-delete
-                    </v-icon>
-                  </template>
-                  <v-card :title="$t('actions.del')" rounded="lg">
-                    <v-divider></v-divider>
-                    <v-card-text>{{ $t('confirm') }}</v-card-text>
-                    <v-card-actions>
-                      <v-btn color="error" variant="outlined" @click="deleteToken(token.id)">{{ $t('yes') }}</v-btn>
-                      <v-btn color="success" variant="outlined" @click="delOverlay[index] = false">{{ $t('no') }}</v-btn>
-                    </v-card-actions>
-                  </v-card>
-                </v-menu>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-        <v-btn color="primary" @click="showAddToken()">
-          {{ $t('actions.add') }}
-        </v-btn>
-        <v-dialog v-model="showNewToken" width="300">
-          <v-card class="rounded-lg">
-            <v-card-title>
-              <v-row>
-                <v-col>{{ $t('admin.api.token') }}</v-col>
-                <v-spacer></v-spacer>
-                <v-col cols="auto"><v-icon icon="mdi-close-box" @click="showNewToken = false" /></v-col>
-              </v-row>
-            </v-card-title>
-            <v-divider></v-divider>
-            <v-card-text>
-              <v-row>
-                <v-col>
-                  <v-text-field :label="$t('client.desc')" v-model="newToken.desc"></v-text-field>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-text-field :label="$t('date.expiry')" v-model.number="newToken.expiry" min="0" type="number" :suffix="$t('date.d')"></v-text-field>
-                </v-col>
-              </v-row>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
+
+        <div class="sui-table-wrap sui-tokens-table">
+          <v-table density="compact">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{{ $t('admin.api.token') }}</th>
+                <th>{{ $t('client.desc') }}</th>
+                <th>{{ $t('date.expiry') }}</th>
+                <th class="text-end">{{ $t('actions.del') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!loading && tokens.length === 0">
+                <td colspan="5" class="text-center text-medium-emphasis py-6">
+                  {{ $t('noData') }}
+                </td>
+              </tr>
+              <tr v-for="(token, index) of tokens" :key="token.id">
+                <td class="sui-num text-medium-emphasis">{{ token.id }}</td>
+                <td class="sui-mono text-caption" dir="ltr">{{ token.token }}</td>
+                <td>{{ token.desc || '-' }}</td>
+                <td class="sui-num text-caption" dir="ltr">{{ dateFormatted(token.expiry) }}</td>
+                <td class="text-end">
+                  <v-menu
+                    v-model="delOverlay[index]"
+                    :close-on-content-click="false"
+                    location="top end"
+                  >
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-delete-outline"
+                        variant="text"
+                        color="error"
+                        size="small"
+                        v-bind="props"
+                        :aria-label="$t('actions.del')"
+                      />
+                    </template>
+                    <v-card min-width="240" rounded="lg">
+                      <div class="sui-modal-header py-3 px-4">
+                        <span class="text-subtitle-2 font-weight-semibold">{{ $t('actions.del') }}</span>
+                      </div>
+                      <v-divider />
+                      <div class="px-4 py-3 text-body-2">{{ $t('confirm') }}</div>
+                      <v-divider />
+                      <div class="sui-modal-actions py-2 px-3">
+                        <v-btn variant="text" size="small" @click="delOverlay[index] = false">
+                          {{ $t('no') }}
+                        </v-btn>
+                        <v-btn color="error" variant="flat" size="small" @click="deleteToken(token.id)">
+                          {{ $t('yes') }}
+                        </v-btn>
+                      </div>
+                    </v-card>
+                  </v-menu>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+
+        <v-dialog v-model="showNewToken" width="100%" max-width="420">
+          <v-card class="sui-modal-card">
+            <div class="sui-modal-header">
+              <div class="d-flex align-center ga-3 min-w-0">
+                <v-avatar color="primary" variant="tonal" size="32" rounded="md" class="flex-shrink-0">
+                  <v-icon icon="mdi-key-plus" size="18" />
+                </v-avatar>
+                <div class="text-subtitle-1 font-weight-semibold text-truncate">
+                  {{ $t('actions.add') }} {{ $t('admin.api.token') }}
+                </div>
+              </div>
               <v-btn
-                color="blue-darken-1"
-                variant="outlined"
+                icon="mdi-close"
+                variant="text"
+                size="small"
+                :aria-label="$t('actions.close')"
                 @click="showNewToken = false"
-              >
+              />
+            </div>
+
+            <v-divider />
+
+            <div class="sui-modal-body">
+              <v-row>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="newToken.desc"
+                    :label="$t('client.desc')"
+                    hide-details
+                  />
+                </v-col>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model.number="newToken.expiry"
+                    :label="$t('date.expiry')"
+                    min="0"
+                    type="number"
+                    :suffix="$t('date.d')"
+                    hide-details
+                  />
+                </v-col>
+              </v-row>
+            </div>
+
+            <v-divider />
+
+            <div class="sui-modal-actions">
+              <v-btn variant="text" @click="showNewToken = false">
                 {{ $t('actions.close') }}
               </v-btn>
-              <v-btn
-                color="blue-darken-1"
-                variant="tonal"
-                @click="addToken"
-              >
+              <v-btn color="primary" variant="flat" :loading="loading" @click="addToken">
                 {{ $t('actions.add') }}
               </v-btn>
-            </v-card-actions>
+            </div>
           </v-card>
         </v-dialog>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="blue-darken-1"
-          variant="outlined"
-          @click="closeModal"
-        >
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="showAddToken()">
+          {{ $t('actions.add') }}
+        </v-btn>
+        <v-spacer />
+        <v-btn variant="text" @click="closeModal">
           {{ $t('actions.close') }}
         </v-btn>
-      </v-card-actions>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -136,6 +191,7 @@ import { copyToClipboard } from '@/plugins/copy'
 
 export default {
   props: ['visible', 'user'],
+  emits: ['close'],
   data() {
     return {
       loading: false,
@@ -153,10 +209,10 @@ export default {
     locale() {
       const l = i18n.global.locale.value
       switch (l) {
-        case "zhHans":
-          return "zh-cn"
-        case "zhHant":
-          return "zh-tw"
+        case 'zhHans':
+          return 'zh-cn'
+        case 'zhHant':
+          return 'zh-tw'
         default:
           return l
       }
@@ -173,11 +229,11 @@ export default {
       this.loading = false
     },
     resetNewToken() {
-      this.newToken={
-          desc: '',
-          token: '',
-          expiry: 30,
-        }
+      this.newToken = {
+        desc: '',
+        token: '',
+        expiry: 30,
+      }
     },
     showAddToken() {
       this.resetNewToken()
@@ -185,7 +241,7 @@ export default {
     },
     async addToken() {
       this.loading = true
-      this.newToken.expiry = this.newToken.expiry>0 ? this.newToken.expiry : 0
+      this.newToken.expiry = this.newToken.expiry > 0 ? this.newToken.expiry : 0
       const response = await HttpUtils.post('api/addToken', { desc: this.newToken.desc, expiry: this.newToken.expiry })
       if (response.success) {
         this.newToken.token = response.obj
@@ -204,7 +260,7 @@ export default {
     },
     dateFormatted(expiry: number) {
       if (expiry == 0) return i18n.global.t('unlimited')
-      const date = new Date(expiry*1000)
+      const date = new Date(expiry * 1000)
       return date.toLocaleString(this.locale, {
         year: 'numeric',
         month: '2-digit',
@@ -226,3 +282,30 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.sui-token-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: var(--sui-radius-sm);
+  border: 1px solid var(--sui-hairline);
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.sui-token-value {
+  flex: 1 1 200px;
+  min-width: 0;
+  word-break: break-all;
+  font-size: 0.8125rem;
+}
+
+.sui-tokens-table {
+  border: 1px solid var(--sui-hairline);
+  border-radius: var(--sui-radius-md);
+}
+</style>

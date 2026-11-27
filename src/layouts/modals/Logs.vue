@@ -1,48 +1,75 @@
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="90%" max-width="1200" :loading="loading">
-    <v-card class="rounded-lg">
-      <v-card-title>
-        <v-row>
-          <v-col>{{ $t('basic.log.title') }}</v-col>
-          <v-spacer></v-spacer>
-          <v-col cols="auto">
-            <v-icon icon="mdi-close" @click="control.visible = false" />
-          </v-col>
-        </v-row>
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text class="log-dialog-content">
-        <v-row>
-          <v-col cols="12" sm="6" md="4">
+  <v-dialog transition="dialog-bottom-transition" width="100%" max-width="1080">
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-text-box-search-outline" size="18" />
+          </v-avatar>
+          <div class="d-flex align-center ga-2 min-w-0">
+            <div class="text-subtitle-1 font-weight-semibold text-truncate">
+              {{ $t('basic.log.title') }}
+            </div>
+            <v-chip v-if="lines.length > 0" size="small" color="primary" variant="tonal" class="sui-num">
+              {{ lines.length }}
+            </v-chip>
+          </div>
+        </div>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          :aria-label="$t('actions.close')"
+          @click="control.visible = false"
+        />
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body log-dialog-content">
+        <v-row align="center" class="mb-3">
+          <v-col cols="12" sm="5" md="4">
             <v-select
-            hide-details
-            :label="$t('basic.log.level')"
-            :items="logLevels"
-            v-model="logLevel"
-            @update:model-value="loadData">
-            </v-select>
+              v-model="logLevel"
+              hide-details
+              :label="$t('basic.log.level')"
+              :items="logLevels"
+              @update:model-value="loadData"
+            />
           </v-col>
-          <v-col cols="12" sm="6" md="4">
+          <v-col cols="8" sm="5" md="4">
             <v-select
-            hide-details
-            :label="$t('count')"
-            :items="[10,20,30,50,100]"
-            v-model.number="logCount"
-            @update:model-value="loadData">
-            </v-select>
+              v-model.number="logCount"
+              hide-details
+              :label="$t('count')"
+              :items="[10, 20, 30, 50, 100]"
+              @update:model-value="loadData"
+            />
           </v-col>
-          <v-col cols="auto" align="center" justify="center">
+          <v-col cols="4" sm="2" md="4" class="d-flex justify-end">
             <v-btn
               icon="mdi-refresh"
               variant="tonal"
+              size="small"
               :loading="loading"
-              @click="loadData">
-              <v-icon  />
-            </v-btn>
+              :aria-label="$t('actions.update')"
+              @click="loadData"
+            />
           </v-col>
         </v-row>
-        <LogLines :lines="lines" />
-      </v-card-text>
+
+        <div class="sui-logs-wrap">
+          <LogLines :lines="lines" />
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" @click="control.visible = false">
+          {{ $t('actions.close') }}
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -72,14 +99,14 @@ export default {
     async loadData() {
       this.loading = true
       try {
-        const data = await HttpUtils.get('api/logs',{ c: this.logCount, l: this.logLevel })
+        const data = await HttpUtils.get('api/logs', { c: this.logCount, l: this.logLevel })
         if (data.success) {
           this.lines = Array.isArray(data.obj) ? data.obj.map(String) : []
         }
       } finally {
         this.loading = false
       }
-    }
+    },
   },
   watch: {
     visible(v) {
@@ -95,5 +122,11 @@ export default {
 </script>
 
 <style scoped>
-.log-dialog-content { min-width: 0; overflow: hidden; }
+.log-dialog-content {
+  min-width: 0;
+}
+
+.sui-logs-wrap {
+  min-width: 0;
+}
 </style>

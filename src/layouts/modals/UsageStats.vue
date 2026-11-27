@@ -1,30 +1,87 @@
 <template>
-  <v-dialog :model-value="visible" @update:model-value="$emit('update:visible', $event)" transition="dialog-bottom-transition" width="90%" max-width="400">
-    <v-card class="rounded-lg" :loading="loading">
-      <v-card-title>
-        <v-row>
-          <v-col>{{ $t('main.stats.title') }}</v-col>
-          <v-spacer></v-spacer>
-          <v-col cols="auto">
-            <v-icon icon="mdi-refresh" class="me-2" @click="refresh" v-tooltip:top="$t('actions.update')" />
-            <v-icon icon="mdi-close" @click="$emit('update:visible', false)" />
-          </v-col>
-        </v-row>
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text>
-        <v-table density="compact">
-          <tbody>
-            <tr v-for="row in tableRows" :key="row.key">
-              <td class="pa-2" style="width: 40px;">
-                <v-icon :icon="row.icon" size="small" :color="row.color || undefined" />
-              </td>
-              <td class="pa-2">{{ row.label }}</td>
-              <td class="pa-2 text-end" style="direction: ltr;">{{ row.value }}</td>
-            </tr>
-          </tbody>
-        </v-table>
-      </v-card-text>
+  <v-dialog
+    :model-value="visible"
+    transition="dialog-bottom-transition"
+    width="100%"
+    max-width="460"
+    @update:model-value="$emit('update:visible', $event)"
+  >
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-chart-box-outline" size="18" />
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-semibold text-truncate">
+            {{ $t('main.stats.title') }}
+          </div>
+        </div>
+        <div class="d-flex align-center ga-1 flex-shrink-0">
+          <v-btn
+            icon="mdi-refresh"
+            variant="text"
+            size="small"
+            :loading="loading"
+            :aria-label="$t('actions.update')"
+            @click="refresh"
+          />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            :aria-label="$t('actions.close')"
+            @click="$emit('update:visible', false)"
+          />
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <div class="sui-section-header">
+          <span>{{ $t('count') }}</span>
+        </div>
+        <div class="sui-stats-panel mb-4">
+          <dl class="sui-kv-list">
+            <div v-for="row in countRows" :key="row.key" class="sui-kv-row">
+              <dt class="sui-kv-label d-inline-flex align-center ga-2">
+                <v-icon :icon="row.icon" size="16" />
+                <span>{{ row.label }}</span>
+              </dt>
+              <dd class="sui-kv-value sui-num" dir="ltr">{{ row.value }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="sui-section-header">
+          <span>{{ $t('stats.usage') }}</span>
+        </div>
+        <div class="sui-stats-panel">
+          <dl class="sui-kv-list">
+            <div v-for="row in usageRows" :key="row.key" class="sui-kv-row">
+              <dt class="sui-kv-label d-inline-flex align-center ga-2">
+                <v-icon :icon="row.icon" size="16" :color="row.color" />
+                <span>{{ row.label }}</span>
+              </dt>
+              <dd
+                class="sui-kv-value sui-num font-weight-semibold"
+                :class="row.color ? `text-${row.color}` : ''"
+                dir="ltr"
+              >
+                {{ row.value }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" @click="$emit('update:visible', false)">
+          {{ $t('actions.close') }}
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -60,19 +117,30 @@ export default {
       return HumanReadable.sizeFormat(up + down)
     })
 
-    const tableRows = computed(() => {
+    const countRows = computed(() => {
       const t = (key: string) => i18n.global.t(key)
       return [
-        { key: 'clients', icon: 'mdi-account-multiple', label: t('pages.clients'), value: info.value.clients ?? 0, color: undefined },
-        { key: 'inbounds', icon: 'mdi-cloud-download', label: t('pages.inbounds'), value: info.value.inbounds ?? 0, color: undefined },
-        { key: 'outbounds', icon: 'mdi-cloud-upload', label: t('pages.outbounds'), value: info.value.outbounds ?? 0, color: undefined },
-        { key: 'services', icon: 'mdi-server', label: t('pages.services'), value: info.value.services ?? 0, color: undefined },
-        { key: 'endpoints', icon: 'mdi-cloud-tags', label: t('pages.endpoints'), value: info.value.endpoints ?? 0, color: undefined },
-        { key: 'clientUp', icon: 'mdi-cloud-upload', label: t('stats.upload'), value: clientUp.value, color: 'orange' },
-        { key: 'clientDown', icon: 'mdi-cloud-download', label: t('stats.download'), value: clientDown.value, color: 'success' },
-        { key: 'totalUsage', icon: 'mdi-chart-box', label: t('main.stats.totalUsage'), value: totalUsage.value, color: 'primary' },
+        { key: 'clients', icon: 'mdi-account-multiple-outline', label: t('pages.clients'), value: info.value.clients ?? 0 },
+        { key: 'inbounds', icon: 'mdi-import', label: t('pages.inbounds'), value: info.value.inbounds ?? 0 },
+        { key: 'outbounds', icon: 'mdi-export', label: t('pages.outbounds'), value: info.value.outbounds ?? 0 },
+        { key: 'services', icon: 'mdi-cog-outline', label: t('pages.services'), value: info.value.services ?? 0 },
+        { key: 'endpoints', icon: 'mdi-vpn', label: t('pages.endpoints'), value: info.value.endpoints ?? 0 },
       ]
     })
+
+    const usageRows = computed(() => {
+      const t = (key: string) => i18n.global.t(key)
+      return [
+        { key: 'clientUp', icon: 'mdi-arrow-up', label: t('stats.upload'), value: clientUp.value, color: 'upload' },
+        { key: 'clientDown', icon: 'mdi-arrow-down', label: t('stats.download'), value: clientDown.value, color: 'download' },
+        { key: 'totalUsage', icon: 'mdi-chart-box-outline', label: t('main.stats.totalUsage'), value: totalUsage.value, color: 'primary' },
+      ]
+    })
+
+    const tableRows = computed(() => [
+      ...countRows.value.map(r => ({ ...r, color: undefined })),
+      ...usageRows.value,
+    ])
 
     const refresh = async () => {
       loading.value = true
@@ -93,9 +161,20 @@ export default {
       clientUp,
       clientDown,
       totalUsage,
+      countRows,
+      usageRows,
       tableRows,
       refresh,
     }
   },
 }
 </script>
+
+<style scoped>
+.sui-stats-panel {
+  padding: 12px 14px;
+  border-radius: var(--sui-radius-md);
+  border: 1px solid var(--sui-hairline);
+  background-color: rgb(var(--v-theme-surface-light));
+}
+</style>

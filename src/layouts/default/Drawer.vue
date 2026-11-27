@@ -80,12 +80,16 @@
           <template #activator="{ props: tooltipProps }">
             <v-list-item
               v-bind="tooltipProps"
+              role="button"
+              tabindex="0"
               prepend-icon="mdi-logout"
               :title="props.rail ? undefined : $t('menu.logout')"
               :aria-label="$t('menu.logout')"
               rounded="md"
               class="sui-nav-item sui-logout-item"
               @click="logout"
+              @keydown.enter.prevent="logout"
+              @keydown.space.prevent="logout"
             />
           </template>
         </v-tooltip>

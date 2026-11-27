@@ -1,39 +1,108 @@
 <!-- Ported from shenaba/2s-ui (GPL-3.0), adapted for s-ui-nexus. -->
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="560" :model-value="visible" @update:model-value="v => { if (!v) emit('close') }">
-    <v-card class="rounded-lg" :loading="loading">
-      <v-card-title>{{ $t('node.inboundsTitle', { name: nodeName }) }}</v-card-title>
-      <v-divider></v-divider>
-      <v-card-text>
-        <div class="text-medium-emphasis mb-2">{{ $t('node.adoptHint') }}</div>
-        <v-alert v-if="loadError" type="error" variant="tonal" density="compact">{{ loadError }}</v-alert>
-        <div v-else-if="!loading && inbounds.length === 0" class="text-center text-medium-emphasis pa-4">{{ $t('node.noRemoteInbounds') }}</div>
-        <v-list v-else density="compact">
-          <v-list-item v-for="ib in inbounds" :key="ib.tag" :disabled="ib.adopted" @click="toggle(ib)">
-            <template #prepend>
-              <v-checkbox-btn :model-value="ib.adopted || selected.includes(ib.tag)" :disabled="ib.adopted" @click.stop="toggle(ib)" />
-            </template>
-            <v-list-item-title dir="ltr">{{ ib.tag }}</v-list-item-title>
-            <v-list-item-subtitle>{{ ib.type }}<template v-if="!ib.adopted && !ib.takesUsers"> · {{ $t('node.noUsers') }}</template></v-list-item-subtitle>
-            <template #append>
-              <v-chip v-if="ib.adopted" color="success" size="small" variant="tonal">{{ $t('node.adopted') }}</v-chip>
-              <v-chip v-else-if="localTags.includes(ib.tag)" color="warning" size="small" variant="tonal">{{ $t('node.tagConflict') }}</v-chip>
-            </template>
-          </v-list-item>
-        </v-list>
+  <v-dialog
+    transition="dialog-bottom-transition"
+    width="100%"
+    max-width="600"
+    :model-value="visible"
+    @update:model-value="v => { if (!v) emit('close') }"
+  >
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-import" size="18" />
+          </v-avatar>
+          <div class="text-subtitle-1 font-weight-semibold text-truncate">
+            {{ $t('node.inboundsTitle', { name: nodeName }) }}
+          </div>
+        </div>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          size="small"
+          :aria-label="$t('actions.close')"
+          @click="emit('close')"
+        />
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <p class="text-body-2 text-medium-emphasis mb-3">
+          {{ $t('node.adoptHint') }}
+        </p>
+
+        <v-alert v-if="loadError" type="error" variant="tonal" density="compact">
+          {{ loadError }}
+        </v-alert>
+
+        <div v-else-if="!loading && inbounds.length === 0" class="sui-empty-box text-center text-medium-emphasis pa-6">
+          {{ $t('node.noRemoteInbounds') }}
+        </div>
+
+        <div v-else class="sui-inbound-list">
+          <v-list density="compact" bg-color="transparent">
+            <v-list-item
+              v-for="ib in inbounds"
+              :key="ib.tag"
+              :disabled="ib.adopted"
+              @click="toggle(ib)"
+            >
+              <template #prepend>
+                <v-checkbox-btn
+                  :model-value="ib.adopted || selected.includes(ib.tag)"
+                  :disabled="ib.adopted"
+                  @click.stop="toggle(ib)"
+                />
+              </template>
+              <v-list-item-title dir="ltr" class="sui-mono text-body-2">{{ ib.tag }}</v-list-item-title>
+              <v-list-item-subtitle class="text-caption">
+                {{ ib.type }}<template v-if="!ib.adopted && !ib.takesUsers"> · {{ $t('node.noUsers') }}</template>
+              </v-list-item-subtitle>
+              <template #append>
+                <v-chip v-if="ib.adopted" color="success" size="small" variant="outlined">
+                  {{ $t('node.adopted') }}
+                </v-chip>
+                <v-chip v-else-if="localTags.includes(ib.tag)" color="warning" size="small" variant="outlined">
+                  {{ $t('node.tagConflict') }}
+                </v-chip>
+              </template>
+            </v-list-item>
+          </v-list>
+        </div>
+
         <!-- The clients picker of the inbound drawer, offered only while a
              selected inbound can carry users; "none" = import only. -->
-        <Users v-if="!loading && assignable" :clients="pickerClients" :data="initUsers" />
-        <div v-if="!loading && assignable && incomplete" class="text-caption text-error mt-1">{{ $t('node.pickClients') }}</div>
-      </v-card-text>
-      <v-card-actions>
-        <v-btn variant="text" prepend-icon="mdi-refresh" :loading="loading" @click="load">{{ $t('node.refresh') }}</v-btn>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" variant="outlined" @click="emit('close')">{{ $t('actions.close') }}</v-btn>
-        <v-btn color="primary" variant="tonal" :loading="adopting" :disabled="selected.length === 0 || (assignable && incomplete)" @click="adopt">
-          {{ $t('node.adopt') }} ({{ selected.length }})
+        <div v-if="!loading && assignable" class="mt-4">
+          <Users :clients="pickerClients" :data="initUsers" />
+          <div v-if="incomplete" class="text-caption text-error mt-1">
+            {{ $t('node.pickClients') }}
+          </div>
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" prepend-icon="mdi-refresh" :loading="loading" @click="load">
+          {{ $t('node.refresh') }}
         </v-btn>
-      </v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="emit('close')">
+          {{ $t('actions.close') }}
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :loading="adopting"
+          :disabled="selected.length === 0 || (assignable && incomplete)"
+          @click="adopt"
+        >
+          <span>{{ $t('node.adopt') }}</span>
+          <span class="sui-num ms-1">({{ selected.length }})</span>
+        </v-btn>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -103,3 +172,12 @@ const adopt = async () => {
 
 watch(() => props.visible, (v) => { if (v) { inbounds.value = []; load() } }, { immediate: true })
 </script>
+
+<style scoped>
+.sui-inbound-list,
+.sui-empty-box {
+  border: 1px solid var(--sui-hairline);
+  border-radius: var(--sui-radius-md);
+  background-color: rgb(var(--v-theme-surface-light));
+}
+</style>

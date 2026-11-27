@@ -1,37 +1,68 @@
 <template>
-  <v-dialog transition="dialog-bottom-transition" width="800" @after-enter="updateData(id)">
-    <v-card class="rounded-lg" :loading="loading">
-      <v-card-title>
-        {{ $t('actions.' + title) + " " + $t('objects.inbound') }}
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-skeleton-loader
-          class="mx-auto border"
-          width="95%"
-          type="card, text, divider, list-item-two-line"
+  <v-dialog transition="dialog-bottom-transition" width="100%" max-width="880" @after-enter="updateData(id)">
+    <v-card class="sui-modal-card" :loading="loading">
+      <div class="sui-modal-header">
+        <div class="d-flex align-center ga-3 min-w-0">
+          <v-avatar color="primary" variant="tonal" size="34" rounded="md" class="flex-shrink-0">
+            <v-icon icon="mdi-import" size="18" />
+          </v-avatar>
+          <div class="d-flex align-center ga-2 min-w-0">
+            <div class="text-subtitle-1 font-weight-semibold text-truncate">
+              {{ $t('actions.' + title) + ' ' + $t('objects.inbound') }}
+            </div>
+            <v-chip v-if="id > 0 && inbound.tag" size="small" variant="tonal" color="secondary" class="sui-mono">
+              {{ inbound.tag }}
+            </v-chip>
+          </div>
+        </div>
+        <div class="d-flex align-center ga-2 flex-shrink-0">
+          <JsonObjectEditor v-model="inbound" />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            :aria-label="$t('actions.close')"
+            @click="closeModal"
+          />
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-body">
+        <v-skeleton-loader
           v-if="loading"
-        ></v-skeleton-loader>
-      <v-card-text style="padding: 0 16px; overflow-y: scroll;">
-		<div class="d-flex justify-end pt-2"><JsonObjectEditor v-model="inbound" /></div>
-        <v-container style="padding: 0;" :hidden="loading">
+          type="article, divider, list-item-two-line, list-item-two-line"
+        />
+
+        <div v-show="!loading">
+          <div class="sui-section-header">
+            <span>{{ $t('client.basics') }}</span>
+          </div>
+
           <v-row>
             <v-col cols="12" sm="6" md="4">
               <v-select
-              hide-details
-              :label="$t('type')"
-              :items="Object.keys(inTypes).map((key,index) => ({title: key, value: Object.values(inTypes)[index]}))"
-              v-model="inbound.type"
-              @update:modelValue="changeType">
-              </v-select>
+                v-model="inbound.type"
+                hide-details
+                :label="$t('type')"
+                :items="Object.keys(inTypes).map((key, index) => ({ title: key, value: Object.values(inTypes)[index] }))"
+                @update:model-value="changeType"
+              />
             </v-col>
             <v-col cols="12" sm="6" md="4">
-              <v-text-field v-model="inbound.tag" :label="$t('objects.tag')" hide-details></v-text-field>
+              <v-text-field v-model="inbound.tag" class="sui-mono" :label="$t('objects.tag')" hide-details />
             </v-col>
-            <v-col cols="12" sm="6" md="4">
-              <v-switch color="primary" v-model="enable" :label="$t('enable')" hide-details></v-switch>
+            <v-col cols="12" sm="6" md="4" class="d-flex align-center">
+              <v-switch v-model="enable" color="primary" :label="$t('enable')" hide-details />
             </v-col>
           </v-row>
-          <v-row v-if="inbound.type != inTypes.Tun && inbound.type != inTypes.Redirect && inbound.type != inTypes.TProxy">
+
+          <v-row
+            v-if="inbound.type != inTypes.Tun && inbound.type != inTypes.Redirect && inbound.type != inTypes.TProxy"
+            class="mt-2"
+            align="center"
+          >
             <v-col cols="12" sm="6" md="4">
               <v-text-field
                 v-model.number="volumeGb"
@@ -41,80 +72,119 @@
                 suffix="GiB"
                 :label="$t('inbound.limit')"
                 :hint="$t('inbound.limitHint')"
-                persistent-hint>
-              </v-text-field>
+                persistent-hint
+              />
             </v-col>
-            <v-col cols="12" sm="6" md="8" v-if="$props.id > 0" class="d-flex align-center">
-              <span dir="ltr" class="me-2">{{ $t('inbound.used') }}: {{ HumanReadable.sizeFormat(usedBytes) }}<template v-if="(inbound.volume ?? 0) > 0"> / {{ HumanReadable.sizeFormat(inbound.volume ?? 0) }}</template></span>
-              <v-btn size="small" variant="tonal" color="warning" :loading="resetting" @click="resetTraffic">{{ $t('inbound.resetTraffic') }}</v-btn>
+            <v-col v-if="$props.id > 0" cols="12" sm="6" md="8">
+              <div class="sui-usage-inline d-flex align-center justify-space-between flex-wrap ga-2">
+                <span dir="ltr" class="sui-num text-body-2">
+                  <span class="text-medium-emphasis">{{ $t('inbound.used') }}:</span>
+                  <strong class="ms-1">{{ HumanReadable.sizeFormat(usedBytes) }}</strong>
+                  <span v-if="(inbound.volume ?? 0) > 0" class="text-medium-emphasis">
+                    / {{ HumanReadable.sizeFormat(inbound.volume ?? 0) }}
+                  </span>
+                </span>
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  color="warning"
+                  prepend-icon="mdi-restore"
+                  :loading="resetting"
+                  @click="resetTraffic"
+                >
+                  {{ $t('inbound.resetTraffic') }}
+                </v-btn>
+              </div>
             </v-col>
           </v-row>
-          <v-tabs
-            v-if="HasInData.includes(inbound.type)"
-            v-model="side"
-            density="compact"
-            fixed-tabs
-            align-tabs="center"
-          >
-            <v-tab value="s">{{ $t('in.sSide') }}</v-tab>
-            <v-tab value="c">{{ $t('in.cSide') }}</v-tab>
-          </v-tabs>
-          <v-window v-model="side" style="margin-top: 10px;">
+
+          <template v-if="HasInData.includes(inbound.type)">
+            <v-tabs
+              v-model="side"
+              density="compact"
+              align-tabs="start"
+              class="mt-4 sui-inline-tabs"
+            >
+              <v-tab value="s">{{ $t('in.sSide') }}</v-tab>
+              <v-tab value="c">{{ $t('in.cSide') }}</v-tab>
+            </v-tabs>
+            <v-divider class="mb-4" />
+          </template>
+
+          <v-window v-model="side" :class="{ 'mt-4': !HasInData.includes(inbound.type) }">
             <v-window-item value="s">
-              <Listen :data="inbound" :inTags="inTags" v-if="inbound.type != inTypes.Tun" />
-              <Direct v-if="inbound.type == inTypes.Direct" :data="inbound" />
-              <Shadowsocks v-if="inbound.type == inTypes.Shadowsocks" direction="in" :data="inbound" />
-              <Hysteria v-if="inbound.type == inTypes.Hysteria" direction="in" :data="inbound" />
-              <Hysteria2 v-if="inbound.type == inTypes.Hysteria2" direction="in" :data="inbound" />
-              <Naive v-if="inbound.type == inTypes.Naive" direction="in" :data="inbound" />
-              <ShadowTls v-if="inbound.type == inTypes.ShadowTLS" direction="in" :data="inbound" />
-              <Tuic v-if="inbound.type == inTypes.TUIC" direction="in" :data="inbound" />
-              <Tun v-if="inbound.type == inTypes.Tun" :data="inbound" />
-              <AnyTls v-if="inbound.type == inTypes.AnyTls" :data="inbound" direction="in" />
-              <TProxy v-if="inbound.type == inTypes.TProxy" :inbound="inbound" />
-              <Transport v-if="Object.hasOwn(inbound,'transport')" :data="inbound" />
-              <Users v-if="hasUser" :clients="clients" :data="initUsers" />
-              <InTls v-if="HasTls.includes(inbound.type)"  :inbound="inbound" :tlsConfigs="tlsConfigs" :tls_id="inbound.tls_id" />
-              <Multiplex v-if="MuxAvailable.includes(inbound.type)" direction="in" :data="inbound" />
+              <div class="d-flex flex-column ga-3">
+                <Listen v-if="inbound.type != inTypes.Tun" :data="inbound" :inTags="inTags" />
+                <Direct v-if="inbound.type == inTypes.Direct" :data="inbound" />
+                <Shadowsocks v-if="inbound.type == inTypes.Shadowsocks" direction="in" :data="inbound" />
+                <Hysteria v-if="inbound.type == inTypes.Hysteria" direction="in" :data="inbound" />
+                <Hysteria2 v-if="inbound.type == inTypes.Hysteria2" direction="in" :data="inbound" />
+                <Naive v-if="inbound.type == inTypes.Naive" direction="in" :data="inbound" />
+                <ShadowTls v-if="inbound.type == inTypes.ShadowTLS" direction="in" :data="inbound" />
+                <Tuic v-if="inbound.type == inTypes.TUIC" direction="in" :data="inbound" />
+                <Tun v-if="inbound.type == inTypes.Tun" :data="inbound" />
+                <AnyTls v-if="inbound.type == inTypes.AnyTls" :data="inbound" direction="in" />
+                <TProxy v-if="inbound.type == inTypes.TProxy" :inbound="inbound" />
+                <Transport v-if="Object.hasOwn(inbound, 'transport')" :data="inbound" />
+                <Users v-if="hasUser" :clients="clients" :data="initUsers" />
+                <InTls v-if="HasTls.includes(inbound.type)" :inbound="inbound" :tlsConfigs="tlsConfigs" :tls_id="inbound.tls_id" />
+                <Multiplex v-if="MuxAvailable.includes(inbound.type)" direction="in" :data="inbound" />
+              </div>
             </v-window-item>
+
             <v-window-item value="c">
-              <OutJsonVue :inData="inbound" :type="inbound.type" />
-              <Multiplex v-if="Object.hasOwn(inbound,'multiplex')" direction="out" :data="inbound.out_json" />
-              <Dial v-if="inbound.out_json" :dial="inbound.out_json" mode="client" />
-              <v-card>
-                <v-card-text>
-                  <v-card-subtitle>{{ $t('in.multiDomain') }}
-                    <v-chip color="primary" density="compact" variant="elevated" @click="add_addr"><v-icon icon="mdi-plus" /></v-chip>
-                  </v-card-subtitle>
-                  <template v-for="addr,index in inbound.addrs" :key="index">
-                    {{ $t('in.addr') }} #{{ (index+1) }} <v-icon icon="mdi-delete" color="error" @click="inbound.addrs?.splice(index,1)" />
-                    <v-divider></v-divider>
+              <div class="d-flex flex-column ga-3">
+                <OutJsonVue :inData="inbound" :type="inbound.type" />
+                <Multiplex v-if="Object.hasOwn(inbound, 'multiplex')" direction="out" :data="inbound.out_json" />
+                <Dial v-if="inbound.out_json" :dial="inbound.out_json" mode="client" />
+
+                <div class="sui-sub-panel">
+                  <div class="sui-section-header">
+                    <span>{{ $t('in.multiDomain') }}</span>
+                    <v-btn
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                      prepend-icon="mdi-plus"
+                      @click="add_addr"
+                    >
+                      {{ $t('actions.add') }}
+                    </v-btn>
+                  </div>
+
+                  <div v-for="(addr, index) in inbound.addrs" :key="index" class="sui-addr-block">
+                    <div class="d-flex align-center justify-space-between mb-2">
+                      <span class="text-caption font-weight-semibold text-medium-emphasis sui-num">
+                        {{ $t('in.addr') }} #{{ index + 1 }}
+                      </span>
+                      <v-btn
+                        icon="mdi-delete-outline"
+                        variant="text"
+                        color="error"
+                        size="small"
+                        :aria-label="$t('actions.del')"
+                        @click="inbound.addrs?.splice(index, 1)"
+                      />
+                    </div>
                     <AddrVue :addr="addr" :hasTls="HasTls.includes(inbound.type)" />
-                  </template>
-                </v-card-text>
-              </v-card>
+                  </div>
+                </div>
+              </div>
             </v-window-item>
           </v-window>
-        </v-container>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="primary"
-          variant="outlined"
-          @click="closeModal"
-        >
+        </div>
+      </div>
+
+      <v-divider />
+
+      <div class="sui-modal-actions">
+        <v-btn variant="text" @click="closeModal">
           {{ $t('actions.close') }}
         </v-btn>
-        <v-btn
-          color="primary"
-          variant="tonal"
-          :loading="loading"
-          @click="saveChanges"
-        >
+        <v-btn color="primary" variant="flat" :loading="loading" @click="saveChanges">
           {{ $t('actions.save') }}
         </v-btn>
-      </v-card-actions>
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -143,17 +213,18 @@ import OutJsonVue from '@/components/OutJson.vue'
 import Data from '@/store/modules/data'
 import { HumanReadable } from '@/plugins/utils'
 import { bindableClients, bytesToGb, gbToBytes } from '@/plugins/inbounds'
+
 export default {
   props: ['visible', 'id', 'inTags', 'tlsConfigs'],
   emits: ['close'],
   data() {
     return {
-      inbound: createInbound("direct",{ id:0, "tag": "" }),
-      title: "add",
+      inbound: createInbound('direct', { id: 0, tag: '' }),
+      title: 'add',
       loading: false,
       resetting: false,
       HumanReadable,
-      side: "s",
+      side: 's',
       inTypes: InTypes,
       inboundWithUsers: ['mixed', 'socks', 'http', 'shadowsocks', 'vmess', 'trojan', 'naive', 'hysteria', 'shadowtls', 'tuic', 'hysteria2', 'vless', 'anytls'],
       initUsers: {
@@ -192,7 +263,7 @@ export default {
         InTypes.Trojan,
         InTypes.Shadowsocks,
       ],
-      OnlyTLS: [InTypes.Hysteria, InTypes.Hysteria2, InTypes.TUIC, InTypes.Naive, InTypes.AnyTls ],
+      OnlyTLS: [InTypes.Hysteria, InTypes.Hysteria2, InTypes.TUIC, InTypes.Naive, InTypes.AnyTls],
     }
   },
   methods: {
@@ -208,22 +279,21 @@ export default {
     updateData(id: number) {
       if (id > 0) {
         this.loadData(id)
-        this.title = "edit"
-      }
-      else {
+        this.title = 'edit'
+      } else {
         const port = RandomUtil.randomIntRange(10000, 60000)
-        this.inbound = createInbound("direct",{ id: 0, tag: "direct-"+port ,listen: "::", listen_port: port, enable: true })
-        if (this.HasInData.includes(this.inbound.type)){
+        this.inbound = createInbound('direct', { id: 0, tag: 'direct-' + port, listen: '::', listen_port: port, enable: true })
+        if (this.HasInData.includes(this.inbound.type)) {
           this.inbound.addrs = []
           this.inbound.out_json = {}
         } else {
           delete this.inbound.addrs
           delete this.inbound.out_json
         }
-        this.title = "add"
+        this.title = 'add'
         this.loading = false
       }
-      this.side = "s"
+      this.side = 's'
       this.initUsers = {
         model: 'none',
         values: [],
@@ -232,20 +302,19 @@ export default {
     changeType() {
       if (!this.inbound.listen_port) this.inbound.listen_port = RandomUtil.randomIntRange(10000, 60000)
       // Tag change only in add inbound
-      const tag = this.$props.id > 0 ? this.inbound.tag : this.inbound.type + "-" + this.inbound.listen_port
-      // Use previous data
+      const tag = this.$props.id > 0 ? this.inbound.tag : this.inbound.type + '-' + this.inbound.listen_port
       // The switch and the cap belong to the inbound, not its type: kept.
       const keep = { enable: this.inbound.enable ?? true, volume: this.inbound.volume ?? 0 }
-      const prevConfig = { id: this.inbound.id, tag: tag, listen: this.inbound.listen?? "::", listen_port: this.inbound.listen_port, ...keep }
+      const prevConfig = { id: this.inbound.id, tag: tag, listen: this.inbound.listen ?? '::', listen_port: this.inbound.listen_port, ...keep }
       this.inbound = createInbound(this.inbound.type, this.inbound.type != this.inTypes.Tun ? prevConfig : { tag: tag, ...keep })
-      if (this.HasInData.includes(this.inbound.type)){
+      if (this.HasInData.includes(this.inbound.type)) {
         this.inbound.addrs = []
         this.inbound.out_json = {}
       } else {
         delete this.inbound.addrs
         delete this.inbound.out_json
       }
-      this.side = "s"
+      this.side = 's'
     },
     add_addr() {
       this.inbound.addrs?.push(<Addr>{ server: location.hostname, server_port: this.inbound.listen_port })
@@ -253,7 +322,7 @@ export default {
     async resetTraffic() {
       // Zeroes the counters; an inbound the cap had switched off comes back on.
       this.resetting = true
-      const success = await Data().save("inbounds", "resetTraffic", this.inbound.tag)
+      const success = await Data().save('inbounds', 'resetTraffic', this.inbound.tag)
       this.resetting = false
       if (success) {
         const fresh = await Data().loadInbounds([this.inbound.id])
@@ -265,13 +334,13 @@ export default {
       }
     },
     closeModal() {
-      this.updateData(0) // reset
+      this.updateData(0)
       this.$emit('close')
     },
     async saveChanges() {
       if (!this.$props.visible) return
       // check duplicate tag
-      const isDuplicatedTag = Data().checkTag("inbound", this.inbound.id, this.inbound.tag)
+      const isDuplicatedTag = Data().checkTag('inbound', this.inbound.id, this.inbound.tag)
       if (isDuplicatedTag) return
 
       // save data
@@ -280,16 +349,16 @@ export default {
       if (this.hasUser) {
         switch (this.initUsers.model) {
           case 'all':
-            clientIds = this.clients.map((c:any) => c.id)
+            clientIds = this.clients.map((c: any) => c.id)
             break
           case 'group':
-            clientIds = this.clients.filter((c:any) => this.initUsers.values.includes(c.group)).map((c:any) => c.id)
+            clientIds = this.clients.filter((c: any) => this.initUsers.values.includes(c.group)).map((c: any) => c.id)
             break
           case 'client':
             clientIds = this.initUsers.values
         }
       }
-      const success = await Data().save("inbounds", this.$props.id == 0 ? "new" : "edit", this.inbound, clientIds)
+      const success = await Data().save('inbounds', this.$props.id == 0 ? 'new' : 'edit', this.inbound, clientIds)
       if (success) this.closeModal()
       this.loading = false
     },
@@ -297,7 +366,7 @@ export default {
   computed: {
     validate() {
       if (this.inbound == undefined) return false
-      if (this.inbound.tag == "") return false
+      if (this.inbound.tag == '') return false
       if (this.inbound.listen_port > 65535 || this.inbound.listen_port < 1) return false
       if (this.OnlyTLS.includes(this.inbound.type) && this.inbound.tls_id == 0) return false
       return true
@@ -319,7 +388,7 @@ export default {
     hasUser() {
       if (this.$props.id > 0) return false
       if (!this.inboundWithUsers.includes(this.inbound.type)) return false
-      if (this.inbound.type == InTypes.ShadowTLS && (<ShadowTLS>this.inbound).version < 3 ) return false
+      if (this.inbound.type == InTypes.ShadowTLS && (<ShadowTLS>this.inbound).version < 3) return false
       if ((<any>this.inbound).managed) return false
       return true
     },
@@ -334,7 +403,23 @@ export default {
   components: {
     Listen, InTls, Hysteria2, Naive, Direct, Shadowsocks,
     Users, Hysteria, ShadowTls, TProxy, Multiplex, Tuic, Tun,
-    AnyTls, Transport, AddrVue, OutJsonVue, Dial
-  }
+    AnyTls, Transport, AddrVue, OutJsonVue, Dial,
+  },
 }
 </script>
+
+<style scoped>
+.sui-usage-inline,
+.sui-sub-panel {
+  padding: 12px 14px;
+  border-radius: var(--sui-radius-md);
+  border: 1px solid var(--sui-hairline);
+  background-color: rgb(var(--v-theme-surface-light));
+}
+
+.sui-addr-block + .sui-addr-block {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sui-hairline);
+}
+</style>
