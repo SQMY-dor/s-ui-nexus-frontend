@@ -1,0 +1,351 @@
+/**
+ * src/styles/design-system.scss
+ *
+ * Global design tokens, offline-safe typography, scrollbars, Vuetify 4 polish,
+ * and shared layout/surface utilities for S-UI Nexus. Imported once in main.ts.
+ */
+
+/* Local Persian/Arabic UI font — ASCII digits (U+0030-0039) intentionally excluded
+ * so Latin and CJK numerals render with the native sans/tabular stack. */
+@font-face {
+  font-display: swap;
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 400;
+  src: url('@/assets/Vazirmatn-UI-NL-Regular.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE80-FEFC;
+}
+
+/* Design tokens */
+:root,
+.v-theme--light {
+  --sui-radius-sm: 6px;
+  --sui-radius-md: 10px;
+  --sui-radius-lg: 14px;
+  --sui-sidebar-width: 248px;
+  --sui-sidebar-rail-width: 68px;
+  --sui-topbar-height: 56px;
+  --sui-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Vazirmatn', system-ui, sans-serif;
+  --sui-font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --v-font-body: var(--sui-font-sans);
+  --v-font-heading: var(--sui-font-sans);
+  --sui-hairline: rgba(15, 23, 42, 0.10);
+  --sui-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --sui-shadow-overlay: 0 10px 30px -10px rgba(15, 23, 42, 0.14), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
+  --sui-topbar-bg: rgba(255, 255, 255, 0.86);
+  --sui-gauge-track: #E2E8F0;
+}
+
+.v-theme--dark {
+  --sui-hairline: rgba(203, 213, 225, 0.12);
+  --sui-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --sui-shadow-overlay: 0 14px 36px -10px rgba(0, 0, 0, 0.55), 0 4px 14px -4px rgba(0, 0, 0, 0.35);
+  --sui-topbar-bg: rgba(21, 30, 46, 0.86);
+  --sui-gauge-track: #243044;
+}
+
+/* Base document typography & theme-reactive canvas */
+html,
+body {
+  font-family: var(--sui-font-sans);
+  background-color: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-background));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle theme-reactive scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-border-color), 0.22) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--v-border-color), 0.22);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--v-border-color), 0.38);
+}
+
+/* Vuetify 4 component polish & unmigrated view safeguards */
+.v-btn {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.v-btn.rounded-md:not(.v-btn--icon) {
+  border-radius: var(--sui-radius-sm);
+}
+
+.v-btn.v-btn--icon.rounded-md {
+  border-radius: 50%;
+}
+
+.v-card.rounded-lg {
+  border-radius: var(--sui-radius-md);
+}
+
+/* Prevent double hairline borders where tabbed cards directly wrap child cards */
+.v-card > .v-window .v-window-item > .v-card.v-card--border {
+  border: 0;
+  border-radius: 0;
+}
+
+/* WCAG 2.1 SC 1.4.11 (>= 3:1) Light-mode resting border for outlined inputs
+ * (0.87 high-emphasis on-surface * 0.56 ~= 3.3:1 on #FFFFFF while preserving
+ * Vuetify hover, focus, error, and disabled border states). */
+.v-theme--light .v-field--variant-outlined:not(.v-field--focused):not(.v-field--error):not(.v-field--disabled):not(:hover) .v-field__outline {
+  --v-field-border-opacity: 0.56;
+}
+
+/* Crisp inset switch track and thumb contrast in Light & Dark modes */
+.v-switch--inset .v-switch__track {
+  opacity: 1;
+}
+
+.v-switch--inset .v-selection-control:not(.v-selection-control--dirty) .v-switch__track {
+  background-color: rgb(var(--v-theme-outline));
+}
+
+.v-switch--inset .v-switch__thumb {
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.24);
+}
+
+.v-theme--dark .v-switch--inset .v-selection-control:not(.v-selection-control--dirty) .v-switch__thumb {
+  background-color: #CBD5E1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.v-theme--dark .v-switch--inset .v-selection-control--dirty .v-switch__thumb {
+  background-color: rgb(var(--v-theme-on-primary));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Crisp tooltip surface separation */
+.v-tooltip > .v-overlay__content {
+  border: 1px solid var(--sui-hairline);
+  box-shadow: var(--sui-shadow-overlay);
+  border-radius: var(--sui-radius-sm);
+  font-size: 0.8125rem;
+  padding: 4px 10px;
+}
+
+/* RTL-safe bidirectional text inside form controls */
+.v-field__input input,
+.v-field__input textarea {
+  unicode-bidi: plaintext;
+}
+
+.v-locale--is-rtl .sui-flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Scoped fallback for legacy section headings using <v-col class="v-card-subtitle"> */
+.v-col.v-card-subtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  border-bottom: 1px solid var(--sui-hairline);
+  padding: 4px 12px 6px;
+  margin-bottom: 8px;
+  opacity: 1;
+  text-align: start;
+}
+
+/* Lightweight Vuetify 3 -> 4 typography utility compatibility shim */
+.font-weight-semibold {
+  font-weight: 600;
+}
+
+.text-h4 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.text-h5 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.text-h6 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.text-subtitle-1 {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.text-subtitle-2 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-body-1 {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-body-2 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.text-caption {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.text-overline {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Shared S-UI Nexus utility classes (PROJECT.md Interface Contract #2) */
+.sui-page-container {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+@media (max-width: 600px) {
+  .sui-page-container {
+    padding: 12px 14px;
+  }
+}
+
+.sui-mono {
+  font-family: var(--sui-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.sui-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.sui-resource-card {
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.sui-resource-card:hover {
+  border-color: rgba(var(--v-theme-primary), 0.45);
+  box-shadow: var(--sui-shadow-card);
+}
+
+.sui-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.sui-kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.sui-kv-label {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  flex-shrink: 0;
+}
+
+.sui-kv-value {
+  color: rgb(var(--v-theme-on-surface));
+  font-weight: 500;
+  text-align: end;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sui-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--sui-hairline);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  text-align: start;
+}
+
+.sui-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.sui-modal-body {
+  overflow-y: auto;
+  max-height: 75vh;
+  padding: 16px 20px;
+}
+
+.sui-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+}
+
+.sui-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sui-qr-frame {
+  background: #FFFFFF;
+  padding: 14px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
