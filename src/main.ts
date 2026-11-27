@@ -27,6 +27,7 @@ import JsonObjectEditor from '@/components/JsonObjectEditor.vue'
 import { createNotivue } from 'notivue'
 import 'notivue/notification.css'
 import 'notivue/animations.css'
+import '@/styles/design-system.scss'
 const notivue = createNotivue({
   position: 'bottom-center',
   limit: 4,

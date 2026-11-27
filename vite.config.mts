@@ -49,9 +49,11 @@ export default defineConfig({
         entryFileNames: jsFileName,
         chunkFileNames: jsFileName,
         assetFileNames: (assetInfo) => {
-          if (assetInfo.names.some(name => name.endsWith('.css')))
-            return 'assets/' + embedSafe(assetInfo.names[0].replace(/\.css$/, '')) + '-[hash].css'
-          return 'assets/' + assetInfo.names[0]
+          const rawName = assetInfo.names.find(name => name.endsWith('.css')) ?? assetInfo.names[0] ?? 'asset'
+          const dotIdx = rawName.lastIndexOf('.')
+          const base = dotIdx > 0 ? rawName.slice(0, dotIdx) : rawName
+          const ext = dotIdx > 0 ? rawName.slice(dotIdx) : ''
+          return 'assets/' + embedSafe(base) + '-[hash]' + ext
         },
       },
     }
