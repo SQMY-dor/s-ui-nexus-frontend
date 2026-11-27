@@ -11,7 +11,7 @@ import mdiWoff2 from './scripts/vite-mdi-woff2.mjs'
 // that use it, so chart/qr/yaml/date-picker code stays off the login page.
 const vendorGroups = [
   { name: 'vendor-vue', test: /[\\/]node_modules[\\/](@vue|vue|vue-router|pinia|vue-i18n|@intlify)[\\/]/, priority: 30 },
-  { name: 'vendor-vuetify', test: /[\\/]node_modules[\\/]vuetify[\\/]/, priority: 25 },
+  { name: 'vendor-vuetify', test: /[\\/]node_modules[\\/](@vuetify|vuetify)[\\/]/, priority: 25 },
   { name: 'vendor-chart', test: /[\\/]node_modules[\\/](chart\.js|vue-chartjs|@kurkle)[\\/]/, priority: 20 },
   { name: 'vendor-qr', test: /[\\/]node_modules[\\/](qrcode\.vue|qrcode)[\\/]/, priority: 20 },
   { name: 'vendor-datepicker', test: /[\\/]node_modules[\\/](vue3-persian-datetime-picker|moment|moment-jalaali|jalaali-js)[\\/]/, priority: 20 },
